@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Write;
 use async_trait::async_trait;
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::manager::backend::cpal::CpalBackend;
@@ -11,8 +13,10 @@ use crate::note_gameplay_scene::score_texts::ScoreType::Score;
 use crate::note_gameplay_scene::song::Song;
 
 use thousands::Separable;
+use crate::main_menu_scene::{MainMenuScene, SongDatabase};
 
 use crate::Scene;
+use crate::ui::draw_text_justified;
 use crate::utils::*;
 
 mod constants;
@@ -70,7 +74,7 @@ impl Scene for NoteGameplayScene {
             StaticSoundSettings::default(),
         ).unwrap();
 
-        let music = sound_manager.play(sound).unwrap();
+        let mut music = sound_manager.play(sound).unwrap();
 
         // Background
         let background_texture = quick_load_texture("assets/images/backgrounds/Space Background (3).png").await;
@@ -79,10 +83,10 @@ impl Scene for NoteGameplayScene {
         let mut ship_position = SHIP_FAR_RIGHT / 2.0;
 
         // Input Notes
-        let input_note_up = quick_load_texture("assets/images/icons/Up-Arrow.png").await;
-        let input_note_down = quick_load_texture("assets/images/icons/Down-Arrow.png").await;
-        let input_note_left = quick_load_texture("assets/images/icons/Left-Arrow.png").await;
-        let input_note_right = quick_load_texture("assets/images/icons/Right-Arrow.png").await;
+        let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
+        let input_note_down = quick_load_texture("assets/images/arrow_down.png").await;
+        let input_note_left = quick_load_texture("assets/images/arrow_left.png").await;
+        let input_note_right = quick_load_texture("assets/images/arrow_right.png").await;
 
         let mut up_scale = 1.0;
         let mut down_scale = 1.0;
@@ -90,6 +94,8 @@ impl Scene for NoteGameplayScene {
         let mut right_scale = 1.0;
 
         let hold_note = quick_load_texture("assets/images/hold.png").await;
+
+        let mut game_over_timer = Timer::new(3.0, 0);
 
         loop {
             clear_background(BLACK);
@@ -317,12 +323,6 @@ impl Scene for NoteGameplayScene {
                 ..Default::default()
             });
 
-            // Draw the active Notes
-            for (note_beat, note_type, _hold_length) in &active_notes {
-                let note_draw_pos = ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
-                draw_note(note_type.clone(), note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
-            }
-
             // Check For Hold notes failed or completed
             let mut remove_holds = vec![];
             for (note_beat, note_type, hold_length) in &active_holds {
@@ -411,6 +411,12 @@ impl Scene for NoteGameplayScene {
                 drawn_holds.retain(|x| x != remove_hold);
             }
 
+            // Draw the active Notes
+            for (note_beat, note_type, _hold_length) in &active_notes {
+                let note_draw_pos = ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
+                draw_note(note_type.clone(), note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
+            }
+
             // Check Scale Up
             if is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A) {
                 left_scale = ON_NOTE_PRESS_SCALE_FACTOR;
@@ -480,40 +486,77 @@ impl Scene for NoteGameplayScene {
                 score_texts.retain(|x| x != remove_text);
             }
 
-            draw_text_ex(format!("SCORE: {}", score.separate_with_commas()).as_str(), 5.0, 15.0, TextParams {
+            draw_text_justified(format!("SCORE: {}", score.separate_with_commas()).as_str(), vec2(5.0, 5.0), TextParams {
                 font,
-                font_size: 50,
+                font_size: 110,
                 font_scale: 0.25,
                 color: WHITE,
                 ..Default::default()
-            });
+            }, vec2(0.0, 1.0));
 
-            draw_text_ex(format!("{}", song.credits).as_str(), 535.0, 385.0, TextParams {
+            draw_text_justified(format!("{}", song.credits).as_str(), vec2(708.0 - 5.0, 400.0 - 5.0), TextParams {
                 font,
-                font_size: 40,
+                font_size: 90,
                 font_scale: 0.25,
                 color: WHITE,
                 ..Default::default()
-            });
+            }, vec2(1.0, 0.0));
 
 
             // Clamp the health value to a max
             health = health.clamp(0, MAX_HEALTH);
 
-            draw_window(&mut self.window_context);
-
             // Close Conditions
             if is_key_pressed(KeyCode::Escape) {
-                return None
+                return Some(Box::new(MainMenuScene {
+                    window_context: self.window_context.clone()
+                }));
             }
 
             if health <= 0 {
-                return None
+                game_over_timer.start();
+            }
+
+            game_over_timer.update();
+
+            if game_over_timer.running {
+                music.set_playback_rate(1.0f64 - game_over_timer.percent_done() as f64, Default::default()).unwrap();
+
+                draw_text_justified("GAME OVER", vec2(self.window_context.active_screen_size.x / 2.0, (self.window_context.active_screen_size.y / 2.0) * game_over_timer.percent_done()), TextParams {
+                    font,
+                    font_size: 250,
+                    font_scale: 0.25,
+                    color: Color::new(0.9, 0.8, 0.8, game_over_timer.percent_done()),
+                    ..Default::default()
+                }, vec2(0.5, 0.5));
+            }
+
+            if game_over_timer.is_done() {
+                return Some(Box::new(MainMenuScene {
+                    window_context: self.window_context.clone()
+                }));
             }
 
             if music.position() >= song.song_length as f64 {
-                return None
+                let mut song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/songs/song_data.json").await.unwrap()).unwrap();
+                for data in &mut song_database.songs {
+                    if self.song_path.contains(data.json_name.clone().as_str()) {
+                        if data.high_score < score {
+                            data.high_score = score
+                        }
+                        break;
+                    }
+                }
+
+                let mut data = File::create("assets/songs/song_data.json").unwrap();
+                data.write_all((serde_json::to_string_pretty(&song_database).unwrap()).as_ref()).unwrap();
+
+                return Some(Box::new(MainMenuScene {
+                    window_context: self.window_context.clone()
+                }));
             }
+
+            draw_window(&mut self.window_context);
 
             next_frame().await;
         }
@@ -553,8 +596,8 @@ pub fn draw_note(direction: f32, location: f32, left_tex: Texture2D, right_tex: 
 
 pub fn draw_hold(direction: f32, location: f32, width: f32, texture: Texture2D, thickness_multi: f32) {
     let direction = direction.round() as i32;
-    let note_height = (NOTE_SIZE / 1.5) * thickness_multi;
-    let location = location + 15.0;
+    let note_height = NOTE_SIZE * thickness_multi;
+    let location = location + 20.0;
     match direction {
         1 => { // Right
             draw_texture_ex(texture, location, RIGHT_ARROW_POS - note_height / 2.0, ORANGE, DrawTextureParams {

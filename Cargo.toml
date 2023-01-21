@@ -7,9 +7,13 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1.61"
+image = "0.24.5"
 kira = "0.7.1"
-macroquad = { version = "0.3.25", default-features = false, features = [] }
+macroquad = { version = "0.3.25", default-features = false }
 macroquad_aspect = { git = "https://github.com/TheEmeraldBee/macroquad_aspect.git" }
 serde = { version = "1.0.152", features = ["serde_derive"] }
 serde_json = "1.0.91"
 thousands = "0.2.0"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.12"
