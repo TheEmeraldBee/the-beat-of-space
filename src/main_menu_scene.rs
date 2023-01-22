@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Write;
 use async_trait::async_trait;
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::manager::backend::cpal::CpalBackend;
@@ -10,7 +12,7 @@ use thousands::Separable;
 use crate::note_gameplay_scene::NoteGameplayScene;
 use crate::scene::Scene;
 use crate::ui::*;
-use crate::utils::{quick_load_texture, Timer};
+use crate::utils::{Config, quick_load_texture, Timer};
 
 pub enum MenuState {
     MainMenu,
@@ -67,23 +69,44 @@ impl Scene for MainMenuScene {
         let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
 
         let frame = quick_load_texture("assets/images/ui/frame.png").await;
-        let nine_slice_frame = NineSliceElement {
+        let nine_slice_frame = Element {
             tex: frame,
-            corner_size: vec2(32.0, 32.0),
-            vertical_size: vec2(32.0, 32.0),
-            horizontal_size: vec2(32.0, 32.0)
+            element_type: ElementType::NineSlice(vec2(10.0, 10.0))
+        };
+
+        let nine_slice_button = Element {
+            tex: quick_load_texture("assets/images/ui/button.png").await,
+            element_type: ElementType::NineSlice(vec2(10.0, 10.0))
         };
 
         let button_template = UITemplate::new(
-            quick_load_texture("assets/images/ui/button.png").await,
+            nine_slice_button,
             Color::new(1.0, 1.0, 1.0, 1.0),
             Some(Color::new(0.8, 0.8, 0.8, 1.0))
         );
 
         let faint_button_template = UITemplate::new(
-            quick_load_texture("assets/images/ui/button.png").await,
+            nine_slice_button,
             Color::new(1.0, 1.0, 1.0, 0.5),
             Some(Color::new(0.8, 0.8, 0.8, 0.5))
+        );
+
+        let plus_template = UITemplate::new(
+            Element {
+                tex: quick_load_texture("assets/images/ui/plus.png").await,
+                element_type: ElementType::Texture
+            },
+            Color::new(1.0, 1.0, 1.0, 1.0),
+            Some(Color::new(0.8, 0.8, 0.8, 1.0))
+        );
+
+        let minus_template = UITemplate::new(
+            Element {
+                tex: quick_load_texture("assets/images/ui/minus.png").await,
+                element_type: ElementType::Texture
+            },
+            Color::new(1.0, 1.0, 1.0, 1.0),
+            Some(Color::new(0.8, 0.8, 0.8, 1.0))
         );
 
         let mut sound_manager = AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
@@ -96,14 +119,22 @@ impl Scene for MainMenuScene {
 
         let mut load_scene_timer = Timer::new(3.5, false);
 
-        let mut quit_timer = Timer::new(1.5, false);
-
         let mut active_difficulty = Difficulty::Easy;
 
         let song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/songs/song_data.json").await.unwrap()).unwrap();
         let mut chosen_song_idx = 0usize;
 
+        let mut config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+
+        music.set_volume(config.volume, Default::default()).unwrap();
+
         let mut changing_song = false;
+
+        let mut play_button_pos = 0.0;
+        let mut settings_button_pos = 0.0;
+        let mut quit_button_pos = 0.0;
+
+        let start_fullscreen = config.fullscreen;
 
         loop {
             set_camera(&self.window_context.camera);
@@ -114,12 +145,20 @@ impl Scene for MainMenuScene {
 
             match state {
                 MenuState::MainMenu => {
+                    let play_rect = justify_rect(50.0, 50.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.0, 0.5));
+                    if hover_rect(play_rect, mouse_pos) {
+                        play_button_pos += 20.0 * (play_button_pos + 1.0) * get_frame_time();
+                    } else {
+                        play_button_pos -= 20.0 * (play_button_pos + 1.0) * get_frame_time()
+                    }
+                    play_button_pos = clamp(play_button_pos, 0.0, 25.0);
+
                     if element_text_template(
-                        justify_rect(708.0 / 2.0, 50.0, 96.0 * 2.5, 26.0 * 2.25, vec2(0.5, 0.5)),
-                        button_template, mouse_pos, "Play",
+                        justify_rect(50.0 + play_button_pos, 50.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.0, 0.5)),
+                        button_template, mouse_pos, "Play Songs",
                         TextParams {
                             font,
-                            font_size: 100,
+                            font_size: 50,
                             font_scale: 0.25,
                             ..Default::default()
                         }
@@ -127,12 +166,20 @@ impl Scene for MainMenuScene {
                         state = MenuState::PlayMenu;
                     }
 
+                    let settings_rect = justify_rect(50.0, 100.0, 96.0 * 1.25, 26.0, vec2(0.0, 0.5));
+                    if hover_rect(settings_rect, mouse_pos) {
+                        settings_button_pos += 20.0 * (settings_button_pos + 1.0) * get_frame_time();
+                    } else {
+                        settings_button_pos -= 20.0 * (settings_button_pos + 1.0) * get_frame_time()
+                    }
+                    settings_button_pos = clamp(settings_button_pos, 0.0, 25.0);
+
                     if element_text_template(
-                        justify_rect(708.0 / 2.0, 140.0, 96.0 * 2.5, 26.0 * 2.25, vec2(0.5, 0.5)),
+                        justify_rect(50.0 + settings_button_pos, 100.0, 96.0 * 1.25, 26.0, vec2(0.0, 0.5)),
                         button_template, mouse_pos, "Settings",
                         TextParams {
                             font,
-                            font_size: 100,
+                            font_size: 50,
                             font_scale: 0.25,
                             ..Default::default()
                         }
@@ -140,23 +187,32 @@ impl Scene for MainMenuScene {
                         state = MenuState::Settings;
                     }
 
+                    let quit_rect = justify_rect(50.0, 145.0, 96.0 * 1.1, 26.0 * 0.85, vec2(0.0, 0.5));
+                    if hover_rect(quit_rect, mouse_pos) {
+                        quit_button_pos += 20.0 * (quit_button_pos + 1.0) * get_frame_time();
+                    } else {
+                        quit_button_pos -= 20.0 * (quit_button_pos + 1.0) * get_frame_time()
+                    }
+                    quit_button_pos = clamp(quit_button_pos, 0.0, 25.0);
+
                     if element_text_template(
-                        justify_rect(708.0 / 2.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
+                        justify_rect(50.0 + quit_button_pos, 145.0, 96.0 * 1.1, 26.0 * 0.85, vec2(0.0, 0.5)),
                         button_template, mouse_pos, "Quit",
                         TextParams {
                             font,
-                            font_size: 80,
+                            font_size: 45,
                             font_scale: 0.25,
                             ..Default::default()
                         }
                     ) {
-                        quit_timer.start();
+                        return None
                     }
                 }
                 MenuState::PlayMenu => {
                     // Difficulty Selection Menu
                     nine_slice_frame.draw(
-                        justify_rect(50.0, 50.0, 96.0 * 2.0, 96.0 * 2.5, vec2(0.0, 0.0))
+                        justify_rect(50.0, 50.0, 96.0 * 2.0, 96.0 * 2.5, vec2(0.0, 0.0)),
+                        WHITE
                     );
 
                     // Easy Button
@@ -256,7 +312,7 @@ impl Scene for MainMenuScene {
 
                     if !changing_song {
                         // Song Data Panel
-                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 50.0, 50.0, 400.0, 240.0, vec2(1.0, 0.0)));
+                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 50.0, 50.0, 400.0, 240.0, vec2(1.0, 0.0)), WHITE);
 
                         draw_text_justified(
                             song_database.songs[chosen_song_idx].name.as_str(),
@@ -306,7 +362,7 @@ impl Scene for MainMenuScene {
 
                     } else {
                         // Song Choice Panel
-                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 250.0, 50.0, 200.0, 240.0, vec2(1.0, 0.0)));
+                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 250.0, 50.0, 200.0, 240.0, vec2(1.0, 0.0)), WHITE);
 
                         for song_idx in 0..song_database.songs.len() {
                             if element_text_template(
@@ -368,16 +424,89 @@ impl Scene for MainMenuScene {
                 }
                 MenuState::Settings => {
                     if element_text_template(
-                        justify_rect(708.0 / 2.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
+                        justify_rect(50.0, self.window_context.active_screen_size.y - 15.0, 96.0 * 1.35, 26.0 * 1.1, vec2(0.0, 1.0)),
                         button_template, mouse_pos, "Back",
                         TextParams {
                             font,
-                            font_size: 80,
+                            font_size: 45,
                             font_scale: 0.25,
                             ..Default::default()
                         }
                     ) {
                         state = MenuState::MainMenu
+                    }
+
+                    nine_slice_frame.draw(justify_rect(40.0, 50.0, 200.0, 40.0, vec2(0.0, 0.5)), WHITE);
+
+                    draw_text_justified("Volume: ", vec2(50.0, 50.0), TextParams {
+                        font,
+                        font_size: 45,
+                        font_scale: 0.25,
+                        ..Default::default()
+                    }, vec2(0.0, 0.5));
+
+                    if element_template(justify_rect(125.0, 50.0, 18.0, 8.0, vec2(0.0, 0.5)), minus_template, mouse_pos) {
+                        config.volume -= 0.05;
+                        config.volume = clamp(config.volume, 0.0, 1.0);
+
+                        let mut data = File::create("assets/config.json").unwrap();
+                        data.write_all((serde_json::to_string_pretty(&config).unwrap()).as_ref()).unwrap();
+                        config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+
+                        music.set_volume(config.volume, Default::default()).unwrap();
+                    }
+
+                    draw_text_justified(&format!("{}%", (config.volume * 100.0).round()), vec2(150.0, 50.0), TextParams {
+                        font,
+                        font_size: 45,
+                        font_scale: 0.25,
+                        ..Default::default()
+                    }, vec2(0.0, 0.5));
+
+                    if element_template(justify_rect(195.0, 50.0, 18.0, 18.0, vec2(0.0, 0.5)), plus_template, mouse_pos) {
+                        config.volume += 0.05;
+                        config.volume = clamp(config.volume, 0.0, 1.0);
+
+                        let mut data = File::create("assets/config.json").unwrap();
+                        data.write_all((serde_json::to_string_pretty(&config).unwrap()).as_ref()).unwrap();
+                        config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+
+                        music.set_volume(config.volume, Default::default()).unwrap();
+                    }
+
+                    if element_text_template(
+                        justify_rect(40.0, 100.0, 96.0 * 2.0, 18.0 * 1.8, vec2(0.0, 0.5)),
+                        button_template,
+                        mouse_pos,
+                        &format!("Fullscreen: {}", match config.fullscreen {
+                            true => { "On" }
+                            false => { "Off" }
+                        }),
+                        TextParams {
+                            font,
+                            font_size: 45,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ) {
+                        config.fullscreen = !config.fullscreen;
+
+                        let mut data = File::create("assets/config.json").unwrap();
+                        data.write_all((serde_json::to_string_pretty(&config).unwrap()).as_ref()).unwrap();
+                        config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+                    }
+
+                    if config.fullscreen != start_fullscreen {
+                        draw_text_justified(
+                            "Restart required to apply change.",
+                            vec2(45.0, 125.0),
+                            TextParams {
+                                font,
+                                font_size: 28,
+                                font_scale: 0.25,
+                                ..Default::default()
+                            }, vec2(0.0, 1.0)
+                        );
                     }
                 }
                 MenuState::Loading => {
@@ -389,19 +518,19 @@ impl Scene for MainMenuScene {
                         text.push('.');
                     }
 
-                    draw_text_justified(&text, vec2(708.0 / 2.0, 400.0 / 2.0), TextParams {
+                    draw_text_justified(&text, vec2(25.0, 400.0 - 25.0), TextParams {
                         font,
-                        font_size: 250,
+                        font_size: 150,
                         font_scale: 0.25,
                         ..Default::default()
-                    }, vec2(0.5, 0.5));
+                    }, vec2(0.0, 0.0));
                 }
             }
 
             load_scene_timer.update();
 
             if load_scene_timer.running {
-                music.set_volume((1.0 - load_scene_timer.percent_done()) as f64, Default::default()).unwrap();
+                music.set_volume(config.volume * (1.0 - load_scene_timer.percent_done()) as f64, Default::default()).unwrap();
             }
 
             if load_scene_timer.is_done() {
@@ -411,20 +540,12 @@ impl Scene for MainMenuScene {
                 );
             }
 
-            if !load_scene_timer.running {
-                quit_timer.update();
+            if is_key_pressed(KeyCode::F12) {
+                return Some();
+            }
 
-                if quit_timer.running {
-                    music.set_volume((1.0 - quit_timer.percent_done()) as f64, Default::default()).unwrap();
-                }
-
-                if quit_timer.is_done() {
-                    return None;
-                }
-
-                if is_key_pressed(KeyCode::Escape) {
-                    quit_timer.start();
-                }
+            if is_key_pressed(KeyCode::Escape) {
+                return None;
             }
 
             draw_window(&mut self.window_context);

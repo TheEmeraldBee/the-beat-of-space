@@ -1,26 +1,33 @@
 #![windows_subsystem = "windows"]
 
+use std::fs::{read_to_string};
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
 use crate::main_menu_scene::MainMenuScene;
 use crate::scene::Scene;
+use crate::utils::Config;
 
 mod utils;
 mod scene;
 
 mod note_gameplay_scene;
 mod main_menu_scene;
+mod game_end_scene;
+
+mod beatmap_editor_scene;
 
 mod ui;
 
 fn window_conf() -> Conf {
+    let config = serde_json::from_str::<Config>(&read_to_string("assets/config.json").unwrap()).unwrap();
+
     Conf {
         window_title: "The Beat Of Space".to_string(),
         window_width: 1920,
         window_height: 1080,
         window_resizable: true,
-        fullscreen: true,
+        fullscreen: config.fullscreen,
         icon: Some(Icon {
             small: <[u8; 1024]>::try_from(image::open("assets/images/icon_small.png").unwrap().as_bytes()).unwrap(),
             medium: <[u8; 4096]>::try_from(image::open("assets/images/icon_med.png").unwrap().as_bytes()).unwrap(),

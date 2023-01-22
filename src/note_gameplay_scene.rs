@@ -13,6 +13,7 @@ use crate::note_gameplay_scene::score_texts::ScoreType::Score;
 use crate::note_gameplay_scene::song::Song;
 
 use thousands::Separable;
+use crate::game_end_scene::GameEndScene;
 use crate::main_menu_scene::{MainMenuScene, SongDatabase};
 
 use crate::Scene;
@@ -54,6 +55,12 @@ impl Scene for NoteGameplayScene {
         let mut score = 0;
         let mut combo_multiplier = 1.0;
 
+        let mut perfect_notes = 0;
+        let mut good_notes = 0;
+        let mut ok_notes = 0;
+        let mut incorrect_notes = 0;
+        let mut missed_notes = 0;
+
         // Load the Song
         let song_json = load_string(self.song_path.as_str()).await.unwrap();
         let song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
@@ -75,6 +82,10 @@ impl Scene for NoteGameplayScene {
         ).unwrap();
 
         let mut music = sound_manager.play(sound).unwrap();
+
+        let config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+
+        music.set_volume(config.volume, Default::default()).unwrap();
 
         // Background
         let background_texture = quick_load_texture("assets/images/backgrounds/Space Background (3).png").await;
@@ -137,6 +148,7 @@ impl Scene for NoteGameplayScene {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Miss, y_offset: note_offset});
                     health -= HEALTH_LOSS_MISS;
+                    missed_notes += 1;
                     combo_multiplier = 1.0;
 
                     continue;
@@ -161,7 +173,8 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset
-                            })
+                            });
+                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -169,14 +182,16 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset
-                            })
+                            });
+                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset
-                            })
+                            });
+                            ok_notes += 1;
                         }
                     }
                 }
@@ -196,7 +211,8 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset
-                            })
+                            });
+                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -204,14 +220,16 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset
-                            })
+                            });
+                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset
-                            })
+                            });
+                            ok_notes += 1;
                         }
                     }
                 }
@@ -231,7 +249,8 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset
-                            })
+                            });
+                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -239,14 +258,16 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset
-                            })
+                            });
+                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset
-                            })
+                            });
+                            ok_notes += 1;
                         }
                     }
                 }
@@ -266,7 +287,8 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset
-                            })
+                            });
+                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -274,14 +296,16 @@ impl Scene for NoteGameplayScene {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset
-                            })
+                            });
+                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset
-                            })
+                            });
+                            ok_notes += 1;
                         }
                     }
                 }
@@ -296,21 +320,25 @@ impl Scene for NoteGameplayScene {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: UP_ARROW_POS});
                 combo_multiplier = 1.0;
+                incorrect_notes += 1;
             }
             if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S)) && !correct_down {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: DOWN_ARROW_POS});
                 combo_multiplier = 1.0;
+                incorrect_notes += 1;
             }
             if (is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A)) && !correct_left {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: LEFT_ARROW_POS});
                 combo_multiplier = 1.0;
+                incorrect_notes += 1;
             }
             if (is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D)) && !correct_right {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: RIGHT_ARROW_POS});
                 combo_multiplier = 1.0;
+                incorrect_notes += 1;
             }
 
             // Draw the SHIP (AKA: Health Bar)!
@@ -532,8 +560,15 @@ impl Scene for NoteGameplayScene {
             }
 
             if game_over_timer.is_done() {
-                return Some(Box::new(MainMenuScene {
-                    window_context: self.window_context.clone()
+                return Some(Box::new(GameEndScene {
+                    window_context: self.window_context.clone(),
+                    beat_level: false,
+                    score,
+                    perfect_notes,
+                    good_notes,
+                    ok_notes,
+                    incorrect_notes,
+                    missed_notes
                 }));
             }
 
@@ -551,8 +586,15 @@ impl Scene for NoteGameplayScene {
                 let mut data = File::create("assets/songs/song_data.json").unwrap();
                 data.write_all((serde_json::to_string_pretty(&song_database).unwrap()).as_ref()).unwrap();
 
-                return Some(Box::new(MainMenuScene {
-                    window_context: self.window_context.clone()
+                return Some(Box::new(GameEndScene {
+                    window_context: self.window_context.clone(),
+                    beat_level: true,
+                    score,
+                    perfect_notes,
+                    good_notes,
+                    ok_notes,
+                    incorrect_notes,
+                    missed_notes
                 }));
             }
 

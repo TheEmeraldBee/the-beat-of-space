@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1.61"
+egui-macroquad = { version = "0.12.0" }
 image = "0.24.5"
 kira = "0.7.1"
 macroquad = { version = "0.3.25", default-features = false }
@@ -17,3 +18,6 @@ thousands = "0.2.0"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1.12"
+
+[patch.crates-io]
+egui-macroquad = { path = "../egui-macroquad" }

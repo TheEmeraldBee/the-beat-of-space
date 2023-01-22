@@ -2,6 +2,7 @@ use macroquad::prelude::FilterMode;
 use macroquad::prelude::Texture2D;
 use macroquad::texture::load_texture;
 use macroquad::time::get_frame_time;
+use serde::{Deserialize, Serialize};
 
 pub async fn quick_load_texture(path: &str) -> Texture2D {
     let texture = load_texture(path).await.unwrap();
@@ -45,4 +46,11 @@ impl<T> Timer<T> where T: Send {
     pub fn percent_done(&self) -> f32 {
         1.0 - (self.timer / self.max_timer)
     }
+}
+
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub struct Config {
+    pub volume: f64,
+    pub fullscreen: bool
 }
