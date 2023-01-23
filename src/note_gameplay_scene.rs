@@ -20,9 +20,9 @@ use crate::Scene;
 use crate::ui::draw_text_justified;
 use crate::utils::*;
 
-mod constants;
-mod song;
-mod score_texts;
+pub mod constants;
+pub mod song;
+pub mod score_texts;
 
 pub struct NoteGameplayScene {
     pub window_context: WindowContext,

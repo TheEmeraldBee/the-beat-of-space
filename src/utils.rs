@@ -1,4 +1,5 @@
-use macroquad::prelude::FilterMode;
+use macroquad::math::Vec2;
+use macroquad::prelude::{FilterMode, Rect};
 use macroquad::prelude::Texture2D;
 use macroquad::texture::load_texture;
 use macroquad::time::get_frame_time;
@@ -53,4 +54,9 @@ impl<T> Timer<T> where T: Send {
 pub struct Config {
     pub volume: f64,
     pub fullscreen: bool
+}
+
+pub fn is_hovering_rect(rect: Rect, mouse_pos: Vec2) -> bool {
+    return mouse_pos.x < rect.x + rect.w && mouse_pos.x > rect.x &&
+        mouse_pos.y < rect.y + rect.h && mouse_pos.y > rect.y
 }

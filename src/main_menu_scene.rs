@@ -8,6 +8,7 @@ use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
 use serde::{Deserialize, Serialize};
 use thousands::Separable;
+use crate::beatmap_editor_scene::BeatmapEditorScene;
 
 use crate::note_gameplay_scene::NoteGameplayScene;
 use crate::scene::Scene;
@@ -541,7 +542,7 @@ impl Scene for MainMenuScene {
             }
 
             if is_key_pressed(KeyCode::F12) {
-                return Some();
+                return Some(Box::new(BeatmapEditorScene { window_context: self.window_context.clone() }));
             }
 
             if is_key_pressed(KeyCode::Escape) {
