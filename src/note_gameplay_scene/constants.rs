@@ -23,6 +23,9 @@ pub const CORRECT_HEALTH_GAIN: i32 = 15;
 pub const HEALTH_LOSS_MISS: i32 = 50;
 pub const HEALTH_LOSS_INCORRECT: i32 = 50;
 
+pub const HEALTH_LOSS_LASER: i32 = 75;
+pub const SCALE_ALPHA_PER_SECOND: f32 = 4.0;
+
 // Text
 pub const TEXT_LAST_TIME: f32 = 0.8;
 

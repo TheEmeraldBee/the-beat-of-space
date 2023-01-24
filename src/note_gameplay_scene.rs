@@ -65,6 +65,7 @@ impl Scene for NoteGameplayScene {
         let song_json = load_string(self.song_path.as_str()).await.unwrap();
         let mut song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
         let mut active_notes = song.notes.clone();
+        let mut song_attacks = song.attacks.clone();
 
         let mut drawn_holds = song.notes.clone();
         drawn_holds.retain(|x| x.2 != 0.0);
@@ -94,6 +95,10 @@ impl Scene for NoteGameplayScene {
         let mut ship_position = SHIP_FAR_RIGHT / 2.0;
         let mut ship_height = 200.0;
         let mut wanted_ship_height = RIGHT_ARROW_POS;
+
+        let mut ship_invincibility = 0.25;
+        let mut ship_alpha = 1.0;
+        let mut ship_alpha_growing = false;
 
         // Input Notes
         let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
@@ -364,7 +369,12 @@ impl Scene for NoteGameplayScene {
             let wanted_ship_position = (SHIP_FAR_RIGHT * health_percentage) - 150.0;
             ship_position += (wanted_ship_position - ship_position) * get_frame_time();
 
-            draw_texture_ex(ship, ship_position, ship_height - SHIP_PIXEL_SIZE / 2.0, WHITE, DrawTextureParams {
+            let alpha = match ship_invincibility > 0.0 {
+                true => { ship_alpha },
+                false => { 1.0 }
+            };
+
+            draw_texture_ex(ship, ship_position, ship_height - SHIP_PIXEL_SIZE / 2.0, Color::new(1.0, 1.0, 1.0, alpha), DrawTextureParams {
                 dest_size: Some(vec2(SHIP_PIXEL_SIZE, SHIP_PIXEL_SIZE)),
                 ..Default::default()
             });
@@ -461,6 +471,65 @@ impl Scene for NoteGameplayScene {
             for (note_beat, note_type, _hold_length) in &active_notes {
                 let note_draw_pos = ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
                 draw_note(note_type.clone(), note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
+            }
+
+            // ATTACKS!
+            // Scale the thickness
+            if ship_alpha_growing {
+                ship_alpha += get_frame_time() * SCALE_ALPHA_PER_SECOND;
+                if ship_alpha >= 1.0 { ship_alpha_growing = false }
+            } else {
+                ship_alpha -= get_frame_time() * SCALE_ALPHA_PER_SECOND;
+                if ship_alpha <= 0.25 { ship_alpha_growing = true }
+            }
+
+            ship_invincibility -= get_frame_time();
+
+            let mut remove_attacks = vec![];
+            for (attack_beat, last_length, note_type) in &song_attacks {
+
+                let note_offset = match note_type.clone() as i32 {
+                    3 => UP_ARROW_POS,
+                    4 => DOWN_ARROW_POS,
+                    1 => RIGHT_ARROW_POS,
+                    2 => LEFT_ARROW_POS,
+                    _ => { panic!("Error! Note type: '{note_type}' unknown") }
+                };
+
+                if attack_beat.clone() + last_length.clone() <= beat {
+                    remove_attacks.push((attack_beat.clone(), last_length.clone(), note_type.clone()));
+                    continue;
+                }
+
+                if beat >= attack_beat.clone() - 2.0 && beat <= attack_beat.clone() {
+                    draw_text_justified("!", vec2(0.0, note_offset), TextParams {
+                        font,
+                        font_size: 100,
+                        font_scale: 0.25,
+                        color: Color::new(0.8, 0.5, 0.4, 1.0),
+                        ..Default::default()
+                    }, vec2(0.0, 0.5));
+                }
+
+                if attack_beat.clone() >= beat {
+                    continue;
+                }
+
+                draw_texture_ex(hold_note, 0.0, note_offset - 20.0, WHITE, DrawTextureParams {
+                    dest_size: Some(vec2(1000.0, 40.0)),
+                    ..Default::default()
+                });
+
+                if ship_height <= note_offset + 20.0 && ship_height >= note_offset - 20.0 && ship_invincibility <= 0.0 {
+                    health -= HEALTH_LOSS_LASER;
+                    score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Miss, y_offset: note_offset});
+
+                    ship_invincibility = 1.0;
+                }
+            }
+
+            for remove_attack in &remove_attacks {
+                song_attacks.retain(|x| x != remove_attack);
             }
 
             // Check Scale Up
