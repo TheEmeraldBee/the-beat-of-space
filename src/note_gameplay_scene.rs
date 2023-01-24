@@ -92,6 +92,8 @@ impl Scene for NoteGameplayScene {
 
         let ship = quick_load_texture("assets/images/ship.png").await;
         let mut ship_position = SHIP_FAR_RIGHT / 2.0;
+        let mut ship_height = 200.0;
+        let mut wanted_ship_height = RIGHT_ARROW_POS;
 
         // Input Notes
         let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
@@ -157,7 +159,7 @@ impl Scene for NoteGameplayScene {
                 if note_beat.clone() < beat - NOTE_CORRECT_RANGE || note_beat.clone() > beat + NOTE_CORRECT_RANGE { continue }
 
                 let diff = note_beat - beat;
-                if (is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W)) && !correct_up && note_type.floor() == 3.0 {
+                if is_key_pressed(KeyCode::Up) && !correct_up && note_type.floor() == 3.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_up = true;
 
@@ -195,7 +197,7 @@ impl Scene for NoteGameplayScene {
                         }
                     }
                 }
-                if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S)) && !correct_down && note_type.floor() == 4.0 {
+                if is_key_pressed(KeyCode::Down) && !correct_down && note_type.floor() == 4.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_down = true;
 
@@ -233,7 +235,7 @@ impl Scene for NoteGameplayScene {
                         }
                     }
                 }
-                if (is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D)) && !correct_right && note_type.floor() == 1.0 {
+                if is_key_pressed(KeyCode::Right) && !correct_right && note_type.floor() == 1.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_right = true;
 
@@ -271,7 +273,7 @@ impl Scene for NoteGameplayScene {
                         }
                     }
                 }
-                if (is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A)) && !correct_left && note_type.floor() == 2.0 {
+                if is_key_pressed(KeyCode::Left) && !correct_left && note_type.floor() == 2.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_left = true;
 
@@ -316,37 +318,53 @@ impl Scene for NoteGameplayScene {
             }
 
             // Check for missed notes
-            if (is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W)) && !correct_up {
+            if is_key_pressed(KeyCode::Up) && !correct_up {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: UP_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
-            if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S)) && !correct_down {
+            if is_key_pressed(KeyCode::Down) && !correct_down {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: DOWN_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
-            if (is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A)) && !correct_left {
+            if is_key_pressed(KeyCode::Left) && !correct_left {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: LEFT_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
-            if (is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D)) && !correct_right {
+            if is_key_pressed(KeyCode::Right) && !correct_right {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: RIGHT_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
 
+            // Check for ship position changes
+            if is_key_pressed(KeyCode::W) {
+                wanted_ship_height = UP_ARROW_POS;
+            }
+            if is_key_pressed(KeyCode::S) {
+                wanted_ship_height = DOWN_ARROW_POS;
+            }
+            if is_key_pressed(KeyCode::A) {
+                wanted_ship_height = LEFT_ARROW_POS;
+            }
+            if is_key_pressed(KeyCode::D) {
+                wanted_ship_height = RIGHT_ARROW_POS
+            }
+
+            ship_height += (wanted_ship_height - ship_height) * 6.0 * get_frame_time();
+
             // Draw the SHIP (AKA: Health Bar)!
             let health_percentage = health as f32 / MAX_HEALTH as f32;
             let wanted_ship_position = (SHIP_FAR_RIGHT * health_percentage) - 150.0;
             ship_position += (wanted_ship_position - ship_position) * get_frame_time();
 
-            draw_texture_ex(ship, ship_position, 200.0 - SHIP_PIXEL_SIZE / 2.0, WHITE, DrawTextureParams {
+            draw_texture_ex(ship, ship_position, ship_height - SHIP_PIXEL_SIZE / 2.0, WHITE, DrawTextureParams {
                 dest_size: Some(vec2(SHIP_PIXEL_SIZE, SHIP_PIXEL_SIZE)),
                 ..Default::default()
             });
@@ -446,16 +464,16 @@ impl Scene for NoteGameplayScene {
             }
 
             // Check Scale Up
-            if is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A) {
+            if is_key_pressed(KeyCode::Left) {
                 left_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
-            if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
+            if is_key_pressed(KeyCode::Up) {
                 up_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
-            if is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D) {
+            if is_key_pressed(KeyCode::Right) {
                 right_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
-            if is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S) {
+            if is_key_pressed(KeyCode::Down) {
                 down_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
 
