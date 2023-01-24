@@ -12,6 +12,7 @@ mod utils;
 mod scene;
 
 mod note_gameplay_scene;
+
 mod main_menu_scene;
 mod game_end_scene;
 

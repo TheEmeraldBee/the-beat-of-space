@@ -130,7 +130,6 @@ impl Scene for BeatmapEditorScene {
                 reload = false;
 
                 if let Ok(song_json) = load_string(&song_path).await {
-                    println!("{song_json}");
                     song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
 
                     beats_per_second = song.bpm / 60.0;
