@@ -13,6 +13,7 @@ use crate::note_gameplay_scene::constants::{ARROW_OFFSET, BEATS_TO_NOTE_HIT, DOW
 use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene};
 use crate::note_gameplay_scene::song::Song;
 use crate::scene::Scene;
+use crate::ui::draw_text_justified;
 use crate::utils::{is_hovering_rect, quick_load_texture};
 
 pub struct BeatmapEditorScene {
@@ -32,6 +33,8 @@ impl Scene for BeatmapEditorScene {
         let mut beats_per_second = song.bpm / 60.0;
         let mut pixels_per_beat = (NOTE_START_POS - ARROW_OFFSET) / BEATS_TO_NOTE_HIT;
 
+        let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
+
         let mut sound_manager = AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
         let mut sound = StaticSoundData::from_file(
             song.song_filepath.clone(),
@@ -45,6 +48,7 @@ impl Scene for BeatmapEditorScene {
         let mut test = false;
 
         let mut selected_note: usize = 10_000_000;
+        let mut selected_attack: usize = 10_000_000;
 
         // Input Notes
         let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
@@ -123,6 +127,32 @@ impl Scene for BeatmapEditorScene {
                             selected_note = song.notes.len() - 1;
                         }
                     });
+                egui::Window::new("Attack Editor")
+                    .current_pos((600.0, 0.0))
+                    .show(egui_ctx, |ui| {
+                        if selected_attack != 10_000_000 {
+                            ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                                ui.add(egui::DragValue::new(&mut song.attacks[selected_attack].0).speed(0.0));
+                                ui.add(egui::DragValue::new(&mut song.attacks[selected_attack].1).speed(0.0));
+                                if ui.button("Rotate").clicked() {
+                                    song.attacks[selected_attack].2 += 1.0;
+                                    if song.attacks[selected_attack].2 > 4.0 {
+                                        song.attacks[selected_attack].2 = 1.0;
+                                    }
+                                }
+
+                                if ui.button("Delete").clicked() {
+                                    song.attacks.remove(selected_attack);
+                                    selected_attack = 10_000_000
+                                }
+                            });
+                        }
+
+                        if ui.button("New").clicked() {
+                            song.attacks.push(((beat - 1.5).floor(), 4.0, 1.0));
+                            selected_attack = song.attacks.len() - 1;
+                        }
+                    });
 
             });
 
@@ -175,6 +205,52 @@ impl Scene for BeatmapEditorScene {
 
             if song_position != music.position() {
                 music.seek_to(song_position).unwrap();
+            }
+
+            for i in 0..song.attacks.len() {
+                let (attack_beat, last_length, note_type) = song.attacks[i];
+                let note_offset = match note_type.clone() as i32 {
+                    3 => UP_ARROW_POS,
+                    4 => DOWN_ARROW_POS,
+                    1 => RIGHT_ARROW_POS,
+                    2 => LEFT_ARROW_POS,
+                    _ => { panic!("Error! Note type: '{note_type}' unknown") }
+                };
+
+                if beat >= attack_beat.clone() - 2.0 && beat <= attack_beat.clone() {
+                    draw_text_justified("!", vec2(0.0, note_offset), TextParams {
+                        font,
+                        font_size: 100,
+                        font_scale: 0.25,
+                        color: Color::new(0.8, 0.5, 0.4, 1.0),
+                        ..Default::default()
+                    }, vec2(0.0, 0.5));
+                }
+
+                if attack_beat.clone() >= beat || attack_beat.clone() + last_length.clone() <= beat {
+                    continue;
+                }
+
+                if i == selected_attack {
+                    draw_texture_ex(hold_note, 0.0, note_offset - 20.0,
+                                    Color::new(1.0, 1.0, 1.0, 1.0), DrawTextureParams {
+                            dest_size: Some(vec2(1000.0, 40.0)),
+                            ..Default::default()
+                        });
+                } else {
+                    draw_texture_ex(hold_note, 0.0, note_offset - 20.0,
+                                    Color::new(1.0, 0.5, 0.6, 1.0), DrawTextureParams {
+                            dest_size: Some(vec2(1000.0, 40.0)),
+                            ..Default::default()
+                        });
+                }
+
+                let mouse_pos = self.window_context.camera.screen_to_world(mouse_position().into());
+                if is_hovering_rect(Rect::new(0.0, note_offset - 20.0, 708.0, 40.0), mouse_pos)
+                    && is_mouse_button_released(MouseButton::Left) {
+                    selected_attack = i;
+                }
+
             }
 
             // Draw Every Note
