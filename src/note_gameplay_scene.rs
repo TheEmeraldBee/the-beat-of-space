@@ -14,7 +14,7 @@ use crate::note_gameplay_scene::song::Song;
 
 use thousands::Separable;
 use crate::game_end_scene::GameEndScene;
-use crate::main_menu_scene::{MainMenuScene, SongDatabase};
+use crate::main_menu_scene::{MainMenuScene};
 
 use crate::Scene;
 use crate::ui::draw_text_justified;
@@ -26,7 +26,7 @@ pub mod score_texts;
 
 pub struct NoteGameplayScene {
     pub window_context: WindowContext,
-    pub song_path: String,
+    pub song_path: String
 }
 
 impl NoteGameplayScene {
@@ -63,7 +63,7 @@ impl Scene for NoteGameplayScene {
 
         // Load the Song
         let song_json = load_string(self.song_path.as_str()).await.unwrap();
-        let song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
+        let mut song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
         let mut active_notes = song.notes.clone();
 
         let mut drawn_holds = song.notes.clone();
@@ -77,7 +77,7 @@ impl Scene for NoteGameplayScene {
 
         let mut sound_manager = AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
         let sound = StaticSoundData::from_file(
-            song.song_filepath,
+            song.song_filepath.clone(),
             StaticSoundSettings::default(),
         ).unwrap();
 
@@ -516,7 +516,7 @@ impl Scene for NoteGameplayScene {
 
             draw_text_justified(format!("SCORE: {}", score.separate_with_commas()).as_str(), vec2(5.0, 5.0), TextParams {
                 font,
-                font_size: 110,
+                font_size: 75,
                 font_scale: 0.25,
                 color: WHITE,
                 ..Default::default()
@@ -524,7 +524,7 @@ impl Scene for NoteGameplayScene {
 
             draw_text_justified(format!("{}", song.credits).as_str(), vec2(708.0 - 5.0, 400.0 - 5.0), TextParams {
                 font,
-                font_size: 90,
+                font_size: 40,
                 font_scale: 0.25,
                 color: WHITE,
                 ..Default::default()
@@ -562,6 +562,7 @@ impl Scene for NoteGameplayScene {
             if game_over_timer.is_done() {
                 return Some(Box::new(GameEndScene {
                     window_context: self.window_context.clone(),
+                    file_path: self.song_path.clone(),
                     beat_level: false,
                     score,
                     perfect_notes,
@@ -573,21 +574,17 @@ impl Scene for NoteGameplayScene {
             }
 
             if music.position() >= song.song_length as f64 {
-                let mut song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/songs/song_data.json").await.unwrap()).unwrap();
-                for data in &mut song_database.songs {
-                    if self.song_path.contains(data.json_name.clone().as_str()) {
-                        if data.high_score < score {
-                            data.high_score = score
-                        }
-                        break;
-                    }
+
+                if song.high_score < score {
+                    song.high_score = score;
                 }
 
-                let mut data = File::create("assets/songs/song_data.json").unwrap();
-                data.write_all((serde_json::to_string_pretty(&song_database).unwrap()).as_ref()).unwrap();
+                let mut data = File::create(self.song_path.clone()).unwrap();
+                data.write_all((serde_json::to_string_pretty(&song.clone()).unwrap()).as_ref()).unwrap();
 
                 return Some(Box::new(GameEndScene {
                     window_context: self.window_context.clone(),
+                    file_path: self.song_path.clone(),
                     beat_level: true,
                     score,
                     perfect_notes,

@@ -46,7 +46,8 @@ pub struct UIElement {
     rect: Rect,
     color: Color,
     hover_color: Color,
-    element: Element
+    element: Element,
+    mouse_pos: Vec2
 }
 
 impl UIElement {
@@ -60,7 +61,8 @@ impl UIElement {
             rect,
             color,
             hover_color: chosen_hover_color,
-            element
+            element,
+            mouse_pos: vec2(0.0, 0.0)
         }
     }
 
@@ -69,45 +71,52 @@ impl UIElement {
             rect,
             color: template.color,
             hover_color: template.hover_color,
-            element: template.element
+            element: template.element,
+            mouse_pos: vec2(0.0, 0.0)
         }
     }
 
     /// Returns if mouse is pressing it
-    pub fn update(&self, mouse_pos: Vec2) -> bool {
+    pub fn update(&mut self, mouse_pos: Vec2) -> &mut Self {
+        self.mouse_pos = mouse_pos;
 
-        if self.is_hovering(mouse_pos) {
+        if self.is_hovering() {
             self.element.draw(self.rect, self.hover_color)
         } else {
             self.element.draw(self.rect, self.color)
         }
 
-        self.is_hovering(mouse_pos) && is_mouse_button_released(MouseButton::Left)
+        self
+    }
+
+    pub fn clicked(&self) -> bool {
+        self.is_hovering() && is_mouse_button_released(MouseButton::Left)
     }
 
     /// Returns if mouse if hovering it
-    pub fn is_hovering(&self, mouse_pos: Vec2) -> bool {
-        return mouse_pos.x < self.rect.x + self.rect.w && mouse_pos.x > self.rect.x &&
-            mouse_pos.y < self.rect.y + self.rect.h && mouse_pos.y > self.rect.y
+    pub fn is_hovering(&self) -> bool {
+        return self.mouse_pos.x < self.rect.x + self.rect.w && self.mouse_pos.x > self.rect.x &&
+            self.mouse_pos.y < self.rect.y + self.rect.h && self.mouse_pos.y > self.rect.y
     }
 }
 
-pub fn element_template(rect: Rect, template: UITemplate, mouse_pos: Vec2) -> bool {
-    let ui_element = UIElement {
+pub fn element_template(rect: Rect, template: UITemplate, mouse_pos: Vec2) -> UIElement {
+    let mut ui_element = UIElement {
         rect,
         color: template.color,
         hover_color: template.hover_color,
-        element: template.element
+        element: template.element,
+        mouse_pos: vec2(0.0, 0.0)
     };
 
-    ui_element.update(mouse_pos)
+    ui_element.update(mouse_pos).clone()
 }
 
-pub fn element(ui_element: UIElement, mouse_pos: Vec2) -> bool {
-    ui_element.update(mouse_pos)
+pub fn element(mut ui_element: UIElement, mouse_pos: Vec2) -> UIElement {
+    ui_element.update(mouse_pos).clone()
 }
 
-pub fn element_text(ui_element: UIElement, mouse_pos: Vec2, text: &str, params: TextParams) -> bool {
+pub fn element_text(ui_element: UIElement, mouse_pos: Vec2, text: &str, params: TextParams) -> UIElement {
     let return_value = element(ui_element.clone(), mouse_pos);
 
     let center_of_rect = get_center_of_rect(ui_element.rect);
@@ -117,7 +126,7 @@ pub fn element_text(ui_element: UIElement, mouse_pos: Vec2, text: &str, params: 
     return_value
 }
 
-pub fn element_text_template(rect: Rect, template: UITemplate, mouse_pos: Vec2, text: &str, params: TextParams) -> bool {
+pub fn element_text_template(rect: Rect, template: UITemplate, mouse_pos: Vec2, text: &str, params: TextParams) -> UIElement {
     let return_value = element_template(rect, template, mouse_pos);
 
     let center_of_rect = get_center_of_rect(rect.clone());

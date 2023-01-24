@@ -1,0 +1,33 @@
+{
+  "songs": [
+    {
+      "name": "Goldn",
+      "json_name": "goldn.json",
+      "difficulties": [
+        "easy",
+        "medium",
+        "hard",
+        "expert",
+        "extreme"
+      ]
+    },
+    {
+      "name": "Drop It",
+      "json_name": "dropit.json",
+      "difficulties": [
+        "easy",
+        "medium",
+        "hard",
+        "expert",
+        "extreme"
+      ]
+    },
+    {
+      "name": "Lullaby",
+      "json_name": "forestlullaby.json",
+      "difficulties": [
+        "extreme"
+      ]
+    }
+  ]
+}

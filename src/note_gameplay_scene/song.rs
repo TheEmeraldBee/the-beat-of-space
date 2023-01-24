@@ -6,5 +6,6 @@ pub struct Song {
     pub song_length: f32,
     pub bpm: f32,
     pub credits: String,
+    pub high_score: i32,
     pub notes: Vec<(f32, f32, f32)>
 }

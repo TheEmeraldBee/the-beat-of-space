@@ -11,6 +11,7 @@ use thousands::Separable;
 use crate::beatmap_editor_scene::BeatmapEditorScene;
 
 use crate::note_gameplay_scene::NoteGameplayScene;
+use crate::note_gameplay_scene::song::Song;
 use crate::scene::Scene;
 use crate::ui::*;
 use crate::utils::{Config, quick_load_texture, Timer};
@@ -39,8 +40,7 @@ pub struct SongDatabase {
 pub struct SongData {
     pub name: String,
     pub json_name: String,
-    pub song_length: f32,
-    pub high_score: i32
+    pub difficulties: Vec<String>
 }
 
 impl Difficulty {
@@ -122,8 +122,10 @@ impl Scene for MainMenuScene {
 
         let mut active_difficulty = Difficulty::Easy;
 
-        let song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/songs/song_data.json").await.unwrap()).unwrap();
+        let song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/song_data.json").await.unwrap()).unwrap();
         let mut chosen_song_idx = 0usize;
+
+        let mut song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
 
         let mut config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
 
@@ -146,16 +148,17 @@ impl Scene for MainMenuScene {
 
             match state {
                 MenuState::MainMenu => {
-                    let play_rect = justify_rect(50.0, 50.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.0, 0.5));
+                    let mut play_rect = justify_rect(50.0, 50.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.0, 0.5));
                     if hover_rect(play_rect, mouse_pos) {
                         play_button_pos += 20.0 * (play_button_pos + 1.0) * get_frame_time();
                     } else {
                         play_button_pos -= 20.0 * (play_button_pos + 1.0) * get_frame_time()
                     }
                     play_button_pos = clamp(play_button_pos, 0.0, 25.0);
+                    play_rect.x += play_button_pos;
 
                     if element_text_template(
-                        justify_rect(50.0 + play_button_pos, 50.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.0, 0.5)),
+                        play_rect,
                         button_template, mouse_pos, "Play Songs",
                         TextParams {
                             font,
@@ -163,20 +166,21 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
+                    ).clicked() {
                         state = MenuState::PlayMenu;
                     }
 
-                    let settings_rect = justify_rect(50.0, 100.0, 96.0 * 1.25, 26.0, vec2(0.0, 0.5));
+                    let mut settings_rect = justify_rect(50.0, 100.0, 96.0 * 1.25, 26.0, vec2(0.0, 0.5));
                     if hover_rect(settings_rect, mouse_pos) {
                         settings_button_pos += 20.0 * (settings_button_pos + 1.0) * get_frame_time();
                     } else {
                         settings_button_pos -= 20.0 * (settings_button_pos + 1.0) * get_frame_time()
                     }
                     settings_button_pos = clamp(settings_button_pos, 0.0, 25.0);
+                    settings_rect.x += settings_button_pos;
 
                     if element_text_template(
-                        justify_rect(50.0 + settings_button_pos, 100.0, 96.0 * 1.25, 26.0, vec2(0.0, 0.5)),
+                        settings_rect,
                         button_template, mouse_pos, "Settings",
                         TextParams {
                             font,
@@ -184,20 +188,21 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
+                    ).clicked() {
                         state = MenuState::Settings;
                     }
 
-                    let quit_rect = justify_rect(50.0, 145.0, 96.0 * 1.1, 26.0 * 0.85, vec2(0.0, 0.5));
+                    let mut quit_rect = justify_rect(50.0, 145.0, 96.0 * 1.1, 26.0 * 0.85, vec2(0.0, 0.5));
                     if hover_rect(quit_rect, mouse_pos) {
                         quit_button_pos += 20.0 * (quit_button_pos + 1.0) * get_frame_time();
                     } else {
                         quit_button_pos -= 20.0 * (quit_button_pos + 1.0) * get_frame_time()
                     }
                     quit_button_pos = clamp(quit_button_pos, 0.0, 25.0);
+                    quit_rect.x += quit_button_pos;
 
                     if element_text_template(
-                        justify_rect(50.0 + quit_button_pos, 145.0, 96.0 * 1.1, 26.0 * 0.85, vec2(0.0, 0.5)),
+                        quit_rect,
                         button_template, mouse_pos, "Quit",
                         TextParams {
                             font,
@@ -205,7 +210,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
+                    ).clicked() {
                         return None
                     }
                 }
@@ -231,8 +236,17 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
-                        active_difficulty = Difficulty::Easy
+                    ).clicked() {
+                        active_difficulty = Difficulty::Easy;
+                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
+                            for idx in 0..song_database.songs.len() {
+                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
+                                    chosen_song_idx = idx;
+                                    break;
+                                }
+                            }
+                        }
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Medium Button
@@ -250,8 +264,17 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
-                        active_difficulty = Difficulty::Medium
+                    ).clicked() {
+                        active_difficulty = Difficulty::Medium;
+                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
+                            for idx in 0..song_database.songs.len() {
+                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
+                                    chosen_song_idx = idx;
+                                    break;
+                                }
+                            }
+                        }
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Hard Button
@@ -269,8 +292,17 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
-                        active_difficulty = Difficulty::Hard
+                    ).clicked() {
+                        active_difficulty = Difficulty::Hard;
+                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
+                            for idx in 0..song_database.songs.len() {
+                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
+                                    chosen_song_idx = idx;
+                                    break;
+                                }
+                            }
+                        }
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Expert Button
@@ -288,8 +320,17 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
-                        active_difficulty = Difficulty::Expert
+                    ).clicked() {
+                        active_difficulty = Difficulty::Expert;
+                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
+                            for idx in 0..song_database.songs.len() {
+                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
+                                    chosen_song_idx = idx;
+                                    break;
+                                }
+                            }
+                        }
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Extreme Button
@@ -307,8 +348,17 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
-                        active_difficulty = Difficulty::Extreme
+                    ).clicked() {
+                        active_difficulty = Difficulty::Extreme;
+                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
+                            for idx in 0..song_database.songs.len() {
+                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
+                                    chosen_song_idx = idx;
+                                    break;
+                                }
+                            }
+                        }
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     if !changing_song {
@@ -326,7 +376,7 @@ impl Scene for MainMenuScene {
                             },vec2(0.5, 1.0));
 
                         draw_text_justified(
-                            &format!("High Score: {}", song_database.songs[chosen_song_idx].high_score.separate_with_commas()),
+                            &format!("High Score: {}", song.high_score.separate_with_commas()),
                             vec2(self.window_context.active_screen_size.x - 425.0, 175.0),
                             TextParams {
                                 font,
@@ -336,7 +386,7 @@ impl Scene for MainMenuScene {
                             },vec2(0.0, 1.0));
 
                         draw_text_justified(
-                            &format!("Length: {} Seconds", song_database.songs[chosen_song_idx].song_length),
+                            &format!("Length: {} Seconds", song.song_length),
                             vec2(self.window_context.active_screen_size.x - 425.0, 125.0),
                             TextParams {
                                 font,
@@ -357,7 +407,7 @@ impl Scene for MainMenuScene {
                                 font_scale: 0.25,
                                 ..Default::default()
                             }
-                        ) {
+                        ).clicked() {
                             changing_song = true;
                         }
 
@@ -365,27 +415,33 @@ impl Scene for MainMenuScene {
                         // Song Choice Panel
                         nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 250.0, 50.0, 200.0, 240.0, vec2(1.0, 0.0)), WHITE);
 
+                        let mut total_songs = 0;
                         for song_idx in 0..song_database.songs.len() {
-                            if element_text_template(
-                                justify_rect(self.window_context.active_screen_size.x - 425.0, 75.0 + (50.0 * song_idx as f32), 95.0 * 1.5, 26.0 * 1.5, vec2(0.0, 0.0)),
-                                {
-                                    if song_idx == chosen_song_idx {
-                                        button_template
-                                    } else {
-                                        faint_button_template
+                            if song_database.songs[song_idx].difficulties.contains(&active_difficulty.to_string()) {
+                                if element_text_template(
+                                    justify_rect(self.window_context.active_screen_size.x - 425.0, 75.0 + (50.0 * total_songs as f32), 95.0 * 1.5, 26.0 * 1.5, vec2(0.0, 0.0)),
+                                    {
+                                        if song_idx == chosen_song_idx {
+                                            button_template
+                                        } else {
+                                            faint_button_template
+                                        }
+                                    },
+                                    mouse_pos,
+                                    &song_database.songs[song_idx].name,
+                                    TextParams {
+                                        font,
+                                        font_size: 50,
+                                        font_scale: 0.25,
+                                        ..Default::default()
                                     }
-                                },
-                                mouse_pos,
-                                &song_database.songs[song_idx].name,
-                                TextParams {
-                                    font,
-                                    font_size: 50,
-                                    font_scale: 0.25,
-                                    ..Default::default()
+                                ).clicked() {
+                                    chosen_song_idx = song_idx;
+                                    changing_song = false;
+                                    song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                                 }
-                            ) {
-                                chosen_song_idx = song_idx;
-                                changing_song = false;
+
+                                total_songs += 1;
                             }
                         }
                     }
@@ -402,7 +458,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
+                    ).clicked() {
                         state = MenuState::Loading;
                         load_scene_timer.start();
                     }
@@ -419,7 +475,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
+                    ).clicked() {
                         state = MenuState::MainMenu
                     }
                 }
@@ -433,7 +489,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
+                    ).clicked() {
                         state = MenuState::MainMenu
                     }
 
@@ -446,7 +502,7 @@ impl Scene for MainMenuScene {
                         ..Default::default()
                     }, vec2(0.0, 0.5));
 
-                    if element_template(justify_rect(125.0, 50.0, 18.0, 8.0, vec2(0.0, 0.5)), minus_template, mouse_pos) {
+                    if element_template(justify_rect(125.0, 50.0, 18.0, 8.0, vec2(0.0, 0.5)), minus_template, mouse_pos).clicked() {
                         config.volume -= 0.05;
                         config.volume = clamp(config.volume, 0.0, 1.0);
 
@@ -464,7 +520,7 @@ impl Scene for MainMenuScene {
                         ..Default::default()
                     }, vec2(0.0, 0.5));
 
-                    if element_template(justify_rect(195.0, 50.0, 18.0, 18.0, vec2(0.0, 0.5)), plus_template, mouse_pos) {
+                    if element_template(justify_rect(195.0, 50.0, 18.0, 18.0, vec2(0.0, 0.5)), plus_template, mouse_pos).clicked() {
                         config.volume += 0.05;
                         config.volume = clamp(config.volume, 0.0, 1.0);
 
@@ -489,7 +545,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ) {
+                    ).clicked() {
                         config.fullscreen = !config.fullscreen;
 
                         let mut data = File::create("assets/config.json").unwrap();

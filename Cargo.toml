@@ -21,3 +21,14 @@ winres = "0.1.12"
 
 [patch.crates-io]
 egui-macroquad = { path = "../egui-macroquad" }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+[profile.release.package."*"]
+opt-level = 3

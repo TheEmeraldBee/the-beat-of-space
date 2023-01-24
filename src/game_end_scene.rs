@@ -3,12 +3,14 @@ use macroquad::prelude::*;
 use macroquad_aspect::prelude::{draw_window, WindowContext};
 use thousands::Separable;
 use crate::main_menu_scene::MainMenuScene;
+use crate::note_gameplay_scene::NoteGameplayScene;
 use crate::ui::*;
 use crate::utils::quick_load_texture;
 use crate::scene::Scene;
 
 pub struct GameEndScene {
     pub window_context: WindowContext,
+    pub file_path: String,
     pub beat_level: bool,
     pub score: i32,
     pub perfect_notes: i32,
@@ -52,7 +54,7 @@ impl Scene for GameEndScene {
             nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x / 2.0, 20.0, 600.0, 300.0, vec2(0.5, 0.0)), WHITE);
 
             if element_text_template(
-                justify_rect(708.0 / 2.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
+                justify_rect(177.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
                 button_template, mouse_pos, "Done",
                 TextParams {
                     font,
@@ -60,10 +62,23 @@ impl Scene for GameEndScene {
                     font_scale: 0.25,
                     ..Default::default()
                 }
-            ) {
+            ).clicked() {
                 return Some(Box::new(MainMenuScene {
                     window_context: self.window_context.clone()
                 }));
+            }
+
+            if element_text_template(
+                justify_rect(531.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
+                button_template, mouse_pos, "Retry",
+                TextParams {
+                    font,
+                    font_size: 80,
+                    font_scale: 0.25,
+                    ..Default::default()
+                }
+            ).clicked() {
+                return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &self.file_path.clone())));
             }
 
             let status_text = match self.beat_level {

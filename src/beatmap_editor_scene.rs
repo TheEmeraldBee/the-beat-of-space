@@ -98,6 +98,7 @@ impl Scene for BeatmapEditorScene {
                         if selected_note != 10_000_000 {
                             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                                 ui.add(egui::DragValue::new(&mut song.notes[selected_note].0).speed(0.0));
+                                ui.add(egui::DragValue::new(&mut song.notes[selected_note].2).speed(0.0));
 
                                 if ui.button("Delete").clicked() || is_key_pressed(KeyCode::Delete) {
                                     song.notes.remove(selected_note);
@@ -152,10 +153,16 @@ impl Scene for BeatmapEditorScene {
             }
 
             if is_key_pressed(KeyCode::I) {
-                song_position += 0.125;
+                song_position += match is_key_down(KeyCode::LeftShift) {
+                    true => 1.0,
+                    false => 0.5
+                } * beats_per_second as f64;
             }
             else if is_key_pressed(KeyCode::K) {
-                song_position -= 0.125;
+                song_position -= match is_key_down(KeyCode::LeftShift) {
+                    true => 1.0,
+                    false => 0.5
+                } * beats_per_second as f64;
             }
 
             if music.position() >= song.song_length as f64 {
@@ -204,10 +211,32 @@ impl Scene for BeatmapEditorScene {
             }
 
             if is_key_pressed(KeyCode::L) && selected_note != 10_000_000 {
-                song.notes[selected_note].0 += 0.125;
+                song.notes[selected_note].0 += match is_key_down(KeyCode::LeftShift) {
+                    true => 0.25,
+                    false => 0.125
+                };
             }
             if is_key_pressed(KeyCode::J) && selected_note != 10_000_000 {
-                song.notes[selected_note].0 -= 0.125;
+                song.notes[selected_note].0 -= match is_key_down(KeyCode::LeftShift) {
+                    true => 0.25,
+                    false => 0.125
+                };
+            }
+            if is_key_pressed(KeyCode::Y) && selected_note != 10_000_000 {
+                song.notes[selected_note].2 += match is_key_down(KeyCode::LeftShift) {
+                    true => 0.25,
+                    false => 0.125
+                };
+
+                song.notes[selected_note].2 = song.notes[selected_note].2.max(0.0);
+            }
+            if is_key_pressed(KeyCode::H) && selected_note != 10_000_000 {
+                song.notes[selected_note].2 -= match is_key_down(KeyCode::LeftShift) {
+                    true => 0.25,
+                    false => 0.125
+                };
+
+                song.notes[selected_note].2 = song.notes[selected_note].2.max(0.0);
             }
 
             // Draw the Input Notes

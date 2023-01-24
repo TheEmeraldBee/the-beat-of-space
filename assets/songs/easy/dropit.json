@@ -3,6 +3,7 @@
   "song_length": 102.0,
   "bpm": 86.0,
   "credits": "Drop It by prazkhanal",
+  "high_score": 0,
   "notes": [
     [
       13.0,
@@ -22,7 +23,7 @@
     [
       7.75,
       4.0,
-      0.0
+      1.5
     ],
     [
       19.0,
