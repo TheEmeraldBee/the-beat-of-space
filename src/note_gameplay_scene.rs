@@ -120,6 +120,7 @@ impl Scene for NoteGameplayScene {
         let mut right_scale = 1.0;
 
         let hold_note = quick_load_texture("assets/images/hold.png").await;
+        let laser = quick_load_texture("assets/images/laser.png").await;
 
         let mut game_over_timer = Timer::new(3.0, 0);
 
@@ -389,16 +390,26 @@ impl Scene for NoteGameplayScene {
 
             // Check for ship position changes
             if is_key_pressed(KeyCode::W) {
-                wanted_ship_height = UP_ARROW_POS;
+                if wanted_ship_height == RIGHT_ARROW_POS {
+                    wanted_ship_height = UP_ARROW_POS;
+                } else if wanted_ship_height == LEFT_ARROW_POS {
+                    wanted_ship_height = LEFT_ARROW_POS;
+                } else if wanted_ship_height == UP_ARROW_POS {
+                    wanted_ship_height = LEFT_ARROW_POS;
+                } else if wanted_ship_height == DOWN_ARROW_POS {
+                    wanted_ship_height = RIGHT_ARROW_POS;
+                }
             }
             if is_key_pressed(KeyCode::S) {
-                wanted_ship_height = DOWN_ARROW_POS;
-            }
-            if is_key_pressed(KeyCode::A) {
-                wanted_ship_height = LEFT_ARROW_POS;
-            }
-            if is_key_pressed(KeyCode::D) {
-                wanted_ship_height = RIGHT_ARROW_POS
+                if wanted_ship_height == RIGHT_ARROW_POS {
+                    wanted_ship_height = DOWN_ARROW_POS;
+                } else if wanted_ship_height == LEFT_ARROW_POS {
+                    wanted_ship_height = UP_ARROW_POS;
+                } else if wanted_ship_height == UP_ARROW_POS {
+                    wanted_ship_height = RIGHT_ARROW_POS;
+                } else if wanted_ship_height == DOWN_ARROW_POS {
+                    wanted_ship_height = DOWN_ARROW_POS;
+                }
             }
 
             ship_height += (wanted_ship_height - ship_height) * 6.0 * get_frame_time();
@@ -598,23 +609,23 @@ impl Scene for NoteGameplayScene {
                     continue;
                 }
 
-                if beat >= attack_beat.clone() - 2.0 && beat <= attack_beat.clone() {
-                    draw_text_justified("!", vec2(0.0, note_offset), TextParams {
-                        font,
-                        font_size: 100,
-                        font_scale: 0.25,
-                        color: Color::new(0.8, 0.5, 0.4, 1.0),
-                        ..Default::default()
-                    }, vec2(0.0, 0.5));
+                if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
+                    let difference = 5.0 - (attack_beat.clone() - beat);
+
+                    draw_texture_ex(laser, 0.0, note_offset - (40.0 * hold_thickness_multi) / 2.0,
+                                    Color::new(red_value, green_value, blue_value, 1.0), DrawTextureParams {
+                            dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0 * hold_thickness_multi)),
+                            ..Default::default()
+                        });
                 }
 
                 if attack_beat.clone() >= beat {
                     continue;
                 }
 
-                draw_texture_ex(hold_note, 0.0, note_offset - 20.0,
+                draw_texture_ex(laser, 0.0, note_offset - (40.0 * hold_thickness_multi) / 2.0,
                                 Color::new(red_value, green_value, blue_value, 1.0), DrawTextureParams {
-                        dest_size: Some(vec2(1000.0, 40.0)),
+                        dest_size: Some(vec2(1000.0, 40.0 * hold_thickness_multi)),
                         ..Default::default()
                     });
 

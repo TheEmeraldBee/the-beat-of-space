@@ -13,8 +13,14 @@ use crate::note_gameplay_scene::constants::{ARROW_OFFSET, BEATS_TO_NOTE_HIT, DOW
 use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene};
 use crate::note_gameplay_scene::song::Song;
 use crate::scene::Scene;
-use crate::ui::draw_text_justified;
 use crate::utils::{is_hovering_rect, quick_load_texture};
+
+pub struct UndoEdit {
+    pub notes: Vec<(f32, f32, f32)>,
+    pub attacks: Vec<(f32, f32, f32)>,
+    pub selected_note: usize,
+    pub selected_attack: usize
+}
 
 pub struct BeatmapEditorScene {
     pub window_context: WindowContext
@@ -24,16 +30,14 @@ pub struct BeatmapEditorScene {
 impl Scene for BeatmapEditorScene {
     async fn run(&mut self) -> Option<Box<dyn Scene>> {
 
-        let mut last_functional_song_path = "assets/songs/easy/dropit.json".to_string();
-        let mut song_path = "assets/songs/easy/dropit.json".to_string();
+        let mut last_functional_song_path = "assets/songs/easy/goldn.json".to_string();
+        let mut song_path = "assets/songs/easy/goldn.json".to_string();
 
         let song_json = load_string(&song_path).await.unwrap();
         let mut song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
 
         let mut beats_per_second = song.bpm / 60.0;
         let mut pixels_per_beat = (NOTE_START_POS - ARROW_OFFSET) / BEATS_TO_NOTE_HIT;
-
-        let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
 
         let mut sound_manager = AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
         let mut sound = StaticSoundData::from_file(
@@ -56,6 +60,11 @@ impl Scene for BeatmapEditorScene {
         let input_note_left = quick_load_texture("assets/images/arrow_left.png").await;
         let input_note_right = quick_load_texture("assets/images/arrow_right.png").await;
         let hold_note = quick_load_texture("assets/images/hold.png").await;
+        let laser = quick_load_texture("assets/images/laser.png").await;
+
+        let mut undo_edits: Vec<UndoEdit> = vec![];
+
+        let mut paused = false;
 
         loop {
             clear_background(BLACK);
@@ -64,12 +73,34 @@ impl Scene for BeatmapEditorScene {
 
             let beat = beats_per_second * ((music.position() * 1_000_000.0).round() / 1_000_000.0) as f32;
 
+            let mut ignore_inputs = false;
+
             song_position = music.position();
             egui_macroquad::ui(|egui_ctx| {
                 egui::Window::new("Main Editor")
+                    .resizable(true)
                     .show(egui_ctx, |ui| {
 
-                        ui.text_edit_singleline(&mut song_path);
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            ui.label("Instructions");
+                            ui.label("CTRL + Z Undo");
+                            ui.label("For Many, you can hold shift to speed up");
+                            ui.label("A/D Move Selected Attack");
+                            ui.label("R/F Increase/Decrease Attack Length");
+                            ui.label("J/L Move Selected Note");
+                            ui.label("Y/H Increase/Decrease Hold Length");
+                            ui.label("O Rotate Note");
+                            ui.label("I/K Move Song Position");
+
+                        });
+
+                        let response = ui.text_edit_singleline(&mut song_path);
+
+                        if response.has_focus() {
+                            ignore_inputs = true;
+                        } else {
+                            ignore_inputs = false;
+                        }
 
                         if ui.button("Save").clicked() {
                             let mut file = File::create(song_path.clone()).unwrap();
@@ -82,38 +113,67 @@ impl Scene for BeatmapEditorScene {
                             reload = true;
                         }
 
-                        if ui.button("Pause").clicked() {
-                            music.pause(Default::default()).unwrap()
-                        }
-                        if ui.button("Play").clicked() {
-                            music.resume(Default::default()).unwrap()
+                        let play_response = ui.button("Play (Space)");
+                        let pause_response = ui.button("Pause (Space)");
+
+                        if pause_response.clicked() || (is_key_pressed(KeyCode::Space) && !ignore_inputs && !paused) {
+                            music.pause(Default::default()).unwrap();
+                            paused = true;
+                        } else if play_response.clicked() || (is_key_pressed(KeyCode::Space) && !ignore_inputs && paused) {
+                            music.resume(Default::default()).unwrap();
+                            paused = false;
                         }
 
                         ui.add(egui::Slider::new(&mut song_position, 0.0..=song.song_length as f64).clamp_to_range(true));
 
                         if ui.button("Test Song").clicked() {
+                            let mut file = File::create(song_path.clone()).unwrap();
+                            let cloned_song = song.clone();
+                            file.write_all(serde_json::to_string_pretty(&cloned_song).unwrap().as_ref()).unwrap();
+
                             reload = true;
                             test = true;
                         }
                     });
                 egui::Window::new("Note Editor")
-                    .current_pos((0.0, 1200.0))
+                    .resizable(true)
                     .show(egui_ctx, |ui| {
                         if selected_note != 10_000_000 {
                             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                                 ui.add(egui::DragValue::new(&mut song.notes[selected_note].0).speed(0.0));
                                 ui.add(egui::DragValue::new(&mut song.notes[selected_note].2).speed(0.0));
 
-                                if ui.button("Delete").clicked() || is_key_pressed(KeyCode::Delete) {
+                                if ui.button("Delete (.)").clicked() || (is_key_pressed(KeyCode::Period) && !ignore_inputs) {
+                                    undo_edits.push(UndoEdit {
+                                        notes: song.notes.clone(),
+                                        attacks: song.attacks.clone(),
+                                        selected_note,
+                                        selected_attack
+                                    });
+
                                     song.notes.remove(selected_note);
                                     selected_note = 10_000_000;
                                 }
-                                if ui.button("Duplicate").clicked() || is_key_pressed(KeyCode::C) {
+                                if ui.button("Duplicate (U)").clicked() || (is_key_pressed(KeyCode::U) && !ignore_inputs) {
+                                    undo_edits.push(UndoEdit {
+                                        notes: song.notes.clone(),
+                                        attacks: song.attacks.clone(),
+                                        selected_note,
+                                        selected_attack
+                                    });
+
                                     let note = song.notes[selected_note].clone();
                                     song.notes.push((note.0 + 0.125, note.1, note.2));
                                     selected_note = song.notes.len() - 1;
                                 }
-                                if ui.button("Rotate").clicked() || is_key_pressed(KeyCode::R) {
+                                if ui.button("Rotate (O)").clicked() || (is_key_pressed(KeyCode::O) && !ignore_inputs) {
+                                    undo_edits.push(UndoEdit {
+                                        notes: song.notes.clone(),
+                                        attacks: song.attacks.clone(),
+                                        selected_note,
+                                        selected_attack
+                                    });
+
                                     song.notes[selected_note].1 += 1.0;
                                     if song.notes[selected_note].1 > 4.0 {
                                         song.notes[selected_note].1 = 1.0;
@@ -122,33 +182,62 @@ impl Scene for BeatmapEditorScene {
                             });
                         }
 
-                        if ui.button("New").clicked() || is_key_pressed(KeyCode::N) {
+                        if ui.button("New (N)").clicked() || (is_key_pressed(KeyCode::N) && !ignore_inputs) {
+                            undo_edits.push(UndoEdit {
+                                notes: song.notes.clone(),
+                                attacks: song.attacks.clone(),
+                                selected_note,
+                                selected_attack
+                            });
+
                             song.notes.push(((beat + 1.5).floor(), 1.0, 0.0));
                             selected_note = song.notes.len() - 1;
                         }
                     });
                 egui::Window::new("Attack Editor")
-                    .current_pos((600.0, 0.0))
+                    .resizable(true)
                     .show(egui_ctx, |ui| {
                         if selected_attack != 10_000_000 {
                             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
                                 ui.add(egui::DragValue::new(&mut song.attacks[selected_attack].0).speed(0.0));
                                 ui.add(egui::DragValue::new(&mut song.attacks[selected_attack].1).speed(0.0));
-                                if ui.button("Rotate").clicked() {
+
+                                if ui.button("Rotate (Q)").clicked() || (is_key_pressed(KeyCode::Q) && !ignore_inputs) {
+                                    undo_edits.push(UndoEdit {
+                                        notes: song.notes.clone(),
+                                        attacks: song.attacks.clone(),
+                                        selected_note,
+                                        selected_attack
+                                    });
+
                                     song.attacks[selected_attack].2 += 1.0;
                                     if song.attacks[selected_attack].2 > 4.0 {
                                         song.attacks[selected_attack].2 = 1.0;
                                     }
                                 }
 
-                                if ui.button("Delete").clicked() {
+                                if ui.button("Delete (X)").clicked() || (is_key_pressed(KeyCode::X) && !ignore_inputs) {
+                                    undo_edits.push(UndoEdit {
+                                        notes: song.notes.clone(),
+                                        attacks: song.attacks.clone(),
+                                        selected_note,
+                                        selected_attack
+                                    });
+
                                     song.attacks.remove(selected_attack);
                                     selected_attack = 10_000_000
                                 }
                             });
                         }
 
-                        if ui.button("New").clicked() {
+                        if ui.button("New (V)").clicked() || (is_key_pressed(KeyCode::V) && !ignore_inputs) {
+                            undo_edits.push(UndoEdit {
+                                notes: song.notes.clone(),
+                                attacks: song.attacks.clone(),
+                                selected_note,
+                                selected_attack
+                            });
+
                             song.attacks.push(((beat - 1.5).floor(), 4.0, 1.0));
                             selected_attack = song.attacks.len() - 1;
                         }
@@ -181,13 +270,13 @@ impl Scene for BeatmapEditorScene {
                 return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &song_path)))
             }
 
-            if is_key_pressed(KeyCode::I) {
+            if is_key_pressed(KeyCode::I) && !ignore_inputs {
                 song_position += match is_key_down(KeyCode::LeftShift) {
                     true => 1.0,
                     false => 0.5
                 } * beats_per_second as f64;
             }
-            else if is_key_pressed(KeyCode::K) {
+            else if is_key_pressed(KeyCode::K) && !ignore_inputs {
                 song_position -= match is_key_down(KeyCode::LeftShift) {
                     true => 1.0,
                     false => 0.5
@@ -217,14 +306,24 @@ impl Scene for BeatmapEditorScene {
                     _ => { panic!("Error! Note type: '{note_type}' unknown") }
                 };
 
-                if beat >= attack_beat.clone() - 2.0 && beat <= attack_beat.clone() {
-                    draw_text_justified("!", vec2(0.0, note_offset), TextParams {
-                        font,
-                        font_size: 100,
-                        font_scale: 0.25,
-                        color: Color::new(0.8, 0.5, 0.4, 1.0),
-                        ..Default::default()
-                    }, vec2(0.0, 0.5));
+                if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
+                    if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
+                        let difference = 5.0 - (attack_beat.clone() - beat);
+
+                        if i == selected_attack {
+                            draw_texture_ex(laser, 0.0, note_offset - 20.0,
+                                            Color::new(1.0, 1.0, 1.0, 1.0), DrawTextureParams {
+                                    dest_size: Some(vec2(1000.0, 40.0)),
+                                    ..Default::default()
+                                });
+                        } else {
+                            draw_texture_ex(laser, 0.0, note_offset - 20.0,
+                                            Color::new(1.0, 0.5, 0.6, 1.0), DrawTextureParams {
+                                    dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0)),
+                                    ..Default::default()
+                                });
+                        }
+                    }
                 }
 
                 if attack_beat.clone() >= beat || attack_beat.clone() + last_length.clone() <= beat {
@@ -232,13 +331,13 @@ impl Scene for BeatmapEditorScene {
                 }
 
                 if i == selected_attack {
-                    draw_texture_ex(hold_note, 0.0, note_offset - 20.0,
+                    draw_texture_ex(laser, 0.0, note_offset - 20.0,
                                     Color::new(1.0, 1.0, 1.0, 1.0), DrawTextureParams {
                             dest_size: Some(vec2(1000.0, 40.0)),
                             ..Default::default()
                         });
                 } else {
-                    draw_texture_ex(hold_note, 0.0, note_offset - 20.0,
+                    draw_texture_ex(laser, 0.0, note_offset - 20.0,
                                     Color::new(1.0, 0.5, 0.6, 1.0), DrawTextureParams {
                             dest_size: Some(vec2(1000.0, 40.0)),
                             ..Default::default()
@@ -285,19 +384,40 @@ impl Scene for BeatmapEditorScene {
                 }
             }
 
-            if is_key_pressed(KeyCode::L) && selected_note != 10_000_000 {
+            if is_key_pressed(KeyCode::L) && selected_note != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
                 song.notes[selected_note].0 += match is_key_down(KeyCode::LeftShift) {
                     true => 0.25,
                     false => 0.125
                 };
             }
-            if is_key_pressed(KeyCode::J) && selected_note != 10_000_000 {
+            if is_key_pressed(KeyCode::J) && selected_note != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
                 song.notes[selected_note].0 -= match is_key_down(KeyCode::LeftShift) {
                     true => 0.25,
                     false => 0.125
                 };
             }
-            if is_key_pressed(KeyCode::Y) && selected_note != 10_000_000 {
+            if is_key_pressed(KeyCode::Y) && selected_note != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
                 song.notes[selected_note].2 += match is_key_down(KeyCode::LeftShift) {
                     true => 0.25,
                     false => 0.125
@@ -305,13 +425,85 @@ impl Scene for BeatmapEditorScene {
 
                 song.notes[selected_note].2 = song.notes[selected_note].2.max(0.0);
             }
-            if is_key_pressed(KeyCode::H) && selected_note != 10_000_000 {
+            if is_key_pressed(KeyCode::H) && selected_note != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
                 song.notes[selected_note].2 -= match is_key_down(KeyCode::LeftShift) {
                     true => 0.25,
                     false => 0.125
                 };
 
                 song.notes[selected_note].2 = song.notes[selected_note].2.max(0.0);
+            }
+
+            if is_key_pressed(KeyCode::A) && selected_attack != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
+                song.attacks[selected_attack].0 -= match is_key_down(KeyCode::LeftShift) {
+                    true => 0.25,
+                    false => 0.125
+                };
+            }
+
+            if is_key_pressed(KeyCode::D) && selected_attack != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
+                song.attacks[selected_attack].0 += match is_key_down(KeyCode::LeftShift) {
+                    true => 0.25,
+                    false => 0.125
+                };
+            }
+
+            if is_key_pressed(KeyCode::R) && selected_attack != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
+                song.attacks[selected_attack].1 += match is_key_down(KeyCode::LeftShift) {
+                    true => 0.5,
+                    false => 0.25
+                };
+            }
+
+            if is_key_pressed(KeyCode::F) && selected_attack != 10_000_000 && !ignore_inputs {
+                undo_edits.push(UndoEdit {
+                    notes: song.notes.clone(),
+                    attacks: song.attacks.clone(),
+                    selected_note,
+                    selected_attack
+                });
+
+                song.attacks[selected_attack].1 -= match is_key_down(KeyCode::LeftShift) {
+                    true => 0.5,
+                    false => 0.25
+                };
+            }
+
+            if is_key_pressed(KeyCode::Z) && !ignore_inputs && undo_edits.len() > 0 && is_key_down(KeyCode::LeftControl) {
+                let undo = undo_edits.pop().unwrap();
+
+                song.notes = undo.notes;
+                song.attacks = undo.attacks;
+                selected_note = undo.selected_note;
+                selected_attack = undo.selected_attack;
             }
 
             // Draw the Input Notes
@@ -338,7 +530,7 @@ impl Scene for BeatmapEditorScene {
             egui_macroquad::draw();
 
             // Quit Condition
-            if is_key_pressed(KeyCode::Escape) {
+            if is_key_pressed(KeyCode::Escape) && !ignore_inputs {
                 return Some(Box::new(MainMenuScene {
                     window_context: self.window_context.clone()
                 }));
