@@ -7,5 +7,8 @@ pub struct Song {
     pub bpm: f32,
     pub credits: String,
     pub high_score: i32,
-    pub notes: Vec<(f32, f32, f32)>
+    // Beat, Type, Hold Length
+    pub notes: Vec<(f32, f32, f32)>,
+    // Beat, Last Time, Type
+    pub attacks: Vec<(f32, f32, f32)>
 }

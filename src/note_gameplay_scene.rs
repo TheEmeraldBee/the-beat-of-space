@@ -61,10 +61,19 @@ impl Scene for NoteGameplayScene {
         let mut incorrect_notes = 0;
         let mut missed_notes = 0;
 
+        // Color Changing
+        let mut red_increasing = false;
+        let mut red_value = 1.0;
+        let mut blue_increasing = false;
+        let mut blue_value = 1.0;
+        let mut green_increasing = false;
+        let mut green_value = 1.0;
+
         // Load the Song
         let song_json = load_string(self.song_path.as_str()).await.unwrap();
         let mut song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
         let mut active_notes = song.notes.clone();
+        let mut song_attacks = song.attacks.clone();
 
         let mut drawn_holds = song.notes.clone();
         drawn_holds.retain(|x| x.2 != 0.0);
@@ -92,6 +101,12 @@ impl Scene for NoteGameplayScene {
 
         let ship = quick_load_texture("assets/images/ship.png").await;
         let mut ship_position = SHIP_FAR_RIGHT / 2.0;
+        let mut ship_height = 200.0;
+        let mut wanted_ship_height = RIGHT_ARROW_POS;
+
+        let mut ship_invincibility = 0.25;
+        let mut ship_alpha = 1.0;
+        let mut ship_alpha_growing = false;
 
         // Input Notes
         let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
@@ -105,6 +120,7 @@ impl Scene for NoteGameplayScene {
         let mut right_scale = 1.0;
 
         let hold_note = quick_load_texture("assets/images/hold.png").await;
+        let laser = quick_load_texture("assets/images/laser.png").await;
 
         let mut game_over_timer = Timer::new(3.0, 0);
 
@@ -116,6 +132,37 @@ impl Scene for NoteGameplayScene {
             draw_texture(background_texture, 0.0, 0.0, Color::new(0.5, 0.5, 0.5, 1.0));
 
             let beat = beats_per_second * ((music.position() * 1_000_000.0).round() / 1_000_000.0) as f32;
+
+            // Color Fixing
+            red_value += get_frame_time() * 2.0 * match red_increasing {
+                false => -1.0,
+                true => 1.0
+            };
+            if red_value >= 1.0 {
+                red_increasing = false;
+            } else if red_value <= 0.2 {
+                red_increasing = true;
+            }
+
+            green_value += get_frame_time() * 1.6 * match green_increasing {
+                false => -1.0,
+                true => 1.0
+            };
+            if green_value >= 1.0 {
+                green_increasing = false;
+            } else if green_value <= 0.2 {
+                green_increasing = true;
+            }
+
+            blue_value += get_frame_time() * 1.2 * match blue_increasing {
+                false => -1.0,
+                true => 1.0
+            };
+            if blue_value >= 1.0 {
+                blue_increasing = false;
+            } else if blue_value <= 0.2 {
+                blue_increasing = true;
+            }
 
             // Scale the thickness
             if thickness_multi_growing {
@@ -157,7 +204,7 @@ impl Scene for NoteGameplayScene {
                 if note_beat.clone() < beat - NOTE_CORRECT_RANGE || note_beat.clone() > beat + NOTE_CORRECT_RANGE { continue }
 
                 let diff = note_beat - beat;
-                if (is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W)) && !correct_up && note_type.floor() == 3.0 {
+                if is_key_pressed(KeyCode::Up) && !correct_up && note_type.floor() == 3.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_up = true;
 
@@ -195,7 +242,7 @@ impl Scene for NoteGameplayScene {
                         }
                     }
                 }
-                if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S)) && !correct_down && note_type.floor() == 4.0 {
+                if is_key_pressed(KeyCode::Down) && !correct_down && note_type.floor() == 4.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_down = true;
 
@@ -233,7 +280,7 @@ impl Scene for NoteGameplayScene {
                         }
                     }
                 }
-                if (is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D)) && !correct_right && note_type.floor() == 1.0 {
+                if is_key_pressed(KeyCode::Right) && !correct_right && note_type.floor() == 1.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_right = true;
 
@@ -271,7 +318,7 @@ impl Scene for NoteGameplayScene {
                         }
                     }
                 }
-                if (is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A)) && !correct_left && note_type.floor() == 2.0 {
+                if is_key_pressed(KeyCode::Left) && !correct_left && note_type.floor() == 2.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     correct_left = true;
 
@@ -316,37 +363,68 @@ impl Scene for NoteGameplayScene {
             }
 
             // Check for missed notes
-            if (is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W)) && !correct_up {
+            if is_key_pressed(KeyCode::Up) && !correct_up {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: UP_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
-            if (is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S)) && !correct_down {
+            if is_key_pressed(KeyCode::Down) && !correct_down {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: DOWN_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
-            if (is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A)) && !correct_left {
+            if is_key_pressed(KeyCode::Left) && !correct_left {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: LEFT_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
-            if (is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D)) && !correct_right {
+            if is_key_pressed(KeyCode::Right) && !correct_right {
                 health -= HEALTH_LOSS_INCORRECT;
                 score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: RIGHT_ARROW_POS});
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
 
+            // Check for ship position changes
+            if is_key_pressed(KeyCode::W) {
+                if wanted_ship_height == RIGHT_ARROW_POS {
+                    wanted_ship_height = UP_ARROW_POS;
+                } else if wanted_ship_height == LEFT_ARROW_POS {
+                    wanted_ship_height = LEFT_ARROW_POS;
+                } else if wanted_ship_height == UP_ARROW_POS {
+                    wanted_ship_height = LEFT_ARROW_POS;
+                } else if wanted_ship_height == DOWN_ARROW_POS {
+                    wanted_ship_height = RIGHT_ARROW_POS;
+                }
+            }
+            if is_key_pressed(KeyCode::S) {
+                if wanted_ship_height == RIGHT_ARROW_POS {
+                    wanted_ship_height = DOWN_ARROW_POS;
+                } else if wanted_ship_height == LEFT_ARROW_POS {
+                    wanted_ship_height = UP_ARROW_POS;
+                } else if wanted_ship_height == UP_ARROW_POS {
+                    wanted_ship_height = RIGHT_ARROW_POS;
+                } else if wanted_ship_height == DOWN_ARROW_POS {
+                    wanted_ship_height = DOWN_ARROW_POS;
+                }
+            }
+
+            ship_height += (wanted_ship_height - ship_height) * 6.0 * get_frame_time();
+
             // Draw the SHIP (AKA: Health Bar)!
             let health_percentage = health as f32 / MAX_HEALTH as f32;
             let wanted_ship_position = (SHIP_FAR_RIGHT * health_percentage) - 150.0;
             ship_position += (wanted_ship_position - ship_position) * get_frame_time();
 
-            draw_texture_ex(ship, ship_position, 200.0 - SHIP_PIXEL_SIZE / 2.0, WHITE, DrawTextureParams {
+            let alpha = match ship_invincibility > 0.0 {
+                true => { ship_alpha },
+                false => { 1.0 }
+            };
+
+            draw_texture_ex(ship, ship_position, ship_height - SHIP_PIXEL_SIZE / 2.0, Color::new(1.0, 1.0, 1.0, alpha), DrawTextureParams {
                 dest_size: Some(vec2(SHIP_PIXEL_SIZE, SHIP_PIXEL_SIZE)),
                 ..Default::default()
             });
@@ -446,16 +524,16 @@ impl Scene for NoteGameplayScene {
             }
 
             // Check Scale Up
-            if is_key_pressed(KeyCode::Left) || is_key_pressed(KeyCode::A) {
+            if is_key_pressed(KeyCode::Left) {
                 left_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
-            if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::W) {
+            if is_key_pressed(KeyCode::Up) {
                 up_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
-            if is_key_pressed(KeyCode::Right) || is_key_pressed(KeyCode::D) {
+            if is_key_pressed(KeyCode::Right) {
                 right_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
-            if is_key_pressed(KeyCode::Down) || is_key_pressed(KeyCode::S) {
+            if is_key_pressed(KeyCode::Down) {
                 down_scale = ON_NOTE_PRESS_SCALE_FACTOR;
             }
 
@@ -502,6 +580,66 @@ impl Scene for NoteGameplayScene {
                 dest_size: Some(vec2(NOTE_SIZE * down_scale, NOTE_SIZE * down_scale)),
                 ..Default::default()
             });
+
+            // ATTACKS!
+            // Scale the thickness
+            if ship_alpha_growing {
+                ship_alpha += get_frame_time() * SCALE_ALPHA_PER_SECOND;
+                if ship_alpha >= 1.0 { ship_alpha_growing = false }
+            } else {
+                ship_alpha -= get_frame_time() * SCALE_ALPHA_PER_SECOND;
+                if ship_alpha <= 0.25 { ship_alpha_growing = true }
+            }
+
+            ship_invincibility -= get_frame_time();
+
+            let mut remove_attacks = vec![];
+            for (attack_beat, last_length, note_type) in &song_attacks {
+
+                let note_offset = match note_type.clone() as i32 {
+                    3 => UP_ARROW_POS,
+                    4 => DOWN_ARROW_POS,
+                    1 => RIGHT_ARROW_POS,
+                    2 => LEFT_ARROW_POS,
+                    _ => { panic!("Error! Note type: '{note_type}' unknown") }
+                };
+
+                if attack_beat.clone() + last_length.clone() <= beat {
+                    remove_attacks.push((attack_beat.clone(), last_length.clone(), note_type.clone()));
+                    continue;
+                }
+
+                if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
+                    let difference = 5.0 - (attack_beat.clone() - beat);
+
+                    draw_texture_ex(laser, 0.0, note_offset - (40.0 * hold_thickness_multi) / 2.0,
+                                    Color::new(red_value, green_value, blue_value, 1.0), DrawTextureParams {
+                            dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0 * hold_thickness_multi)),
+                            ..Default::default()
+                        });
+                }
+
+                if attack_beat.clone() >= beat {
+                    continue;
+                }
+
+                draw_texture_ex(laser, 0.0, note_offset - (40.0 * hold_thickness_multi) / 2.0,
+                                Color::new(red_value, green_value, blue_value, 1.0), DrawTextureParams {
+                        dest_size: Some(vec2(1000.0, 40.0 * hold_thickness_multi)),
+                        ..Default::default()
+                    });
+
+                if ship_height <= note_offset + 40.0 && ship_height >= note_offset - 40.0 && ship_invincibility <= 0.0 {
+                    health -= HEALTH_LOSS_LASER;
+                    score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Miss, y_offset: note_offset});
+
+                    ship_invincibility = 1.0;
+                }
+            }
+
+            for remove_attack in &remove_attacks {
+                song_attacks.retain(|x| x != remove_attack);
+            }
 
             let mut remove_texts = vec![];
             for score_text in &mut score_texts {
