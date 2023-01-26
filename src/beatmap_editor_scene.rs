@@ -79,7 +79,7 @@ impl Scene for BeatmapEditorScene {
 
             egui_macroquad::ui(|egui_ctx| {
                 egui::Window::new("Main Editor")
-                    .fixed_size((500.0, 800.0))
+                    .resizable(true)
                     .show(egui_ctx, |ui| {
 
                         egui::ScrollArea::vertical().show(ui, |ui| {
@@ -139,7 +139,7 @@ impl Scene for BeatmapEditorScene {
                         }
                     });
                 egui::Window::new("Note Editor")
-                    .fixed_size((500.0, 800.0))
+                    .resizable(true)
                     .show(egui_ctx, |ui| {
                         if selected_note != 10_000_000 {
                             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
@@ -198,7 +198,7 @@ impl Scene for BeatmapEditorScene {
                         }
                     });
                 egui::Window::new("Attack Editor")
-                    .fixed_size((500.0, 800.0))
+                    .resizable(true)
                     .show(egui_ctx, |ui| {
                         if selected_attack != 10_000_000 {
                             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
