@@ -75,10 +75,11 @@ impl Scene for BeatmapEditorScene {
 
             let mut ignore_inputs = false;
 
-            song_position = music.position();
+            song_position = music.position() * beats_per_second as f64;
+
             egui_macroquad::ui(|egui_ctx| {
                 egui::Window::new("Main Editor")
-                    .resizable(true)
+                    .fixed_size((500.0, 800.0))
                     .show(egui_ctx, |ui| {
 
                         egui::ScrollArea::vertical().show(ui, |ui| {
@@ -124,7 +125,9 @@ impl Scene for BeatmapEditorScene {
                             paused = false;
                         }
 
-                        ui.add(egui::Slider::new(&mut song_position, 0.0..=song.song_length as f64).clamp_to_range(true));
+                        if ui.add(egui::Slider::new(&mut song_position, 0.0..=(song.song_length * beats_per_second) as f64).clamp_to_range(true)).changed() {
+                            music.seek_to(song_position * beats_per_second as f64).unwrap();
+                        }
 
                         if ui.button("Test Song").clicked() {
                             let mut file = File::create(song_path.clone()).unwrap();
@@ -136,7 +139,7 @@ impl Scene for BeatmapEditorScene {
                         }
                     });
                 egui::Window::new("Note Editor")
-                    .resizable(true)
+                    .fixed_size((500.0, 800.0))
                     .show(egui_ctx, |ui| {
                         if selected_note != 10_000_000 {
                             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
@@ -195,7 +198,7 @@ impl Scene for BeatmapEditorScene {
                         }
                     });
                 egui::Window::new("Attack Editor")
-                    .resizable(true)
+                    .fixed_size((500.0, 800.0))
                     .show(egui_ctx, |ui| {
                         if selected_attack != 10_000_000 {
                             ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
@@ -238,7 +241,14 @@ impl Scene for BeatmapEditorScene {
                                 selected_attack
                             });
 
-                            song.attacks.push(((beat - 1.5).floor(), 4.0, 1.0));
+                            let spawn_loc;
+                            if beat - beat.floor() <= 0.75 && beat - beat.floor() >= 0.25 {
+                                spawn_loc = beat.floor() + 0.5;
+                            } else {
+                                spawn_loc = beat.round();
+                            }
+
+                            song.attacks.push((spawn_loc, 4.0, 1.0));
                             selected_attack = song.attacks.len() - 1;
                         }
                     });
@@ -271,16 +281,16 @@ impl Scene for BeatmapEditorScene {
             }
 
             if is_key_pressed(KeyCode::I) && !ignore_inputs {
-                song_position += match is_key_down(KeyCode::LeftShift) {
-                    true => 1.0,
-                    false => 0.5
-                } * beats_per_second as f64;
+                music.seek_by(match is_key_down(KeyCode::LeftShift) {
+                    true => 0.5,
+                    false => 0.25
+                } * beats_per_second as f64).unwrap();
             }
             else if is_key_pressed(KeyCode::K) && !ignore_inputs {
-                song_position -= match is_key_down(KeyCode::LeftShift) {
-                    true => 1.0,
-                    false => 0.5
-                } * beats_per_second as f64;
+                music.seek_by(-match is_key_down(KeyCode::LeftShift) {
+                    true => 0.5,
+                    false => 0.25
+                } * beats_per_second as f64).unwrap();
             }
 
             if music.position() >= song.song_length as f64 {
@@ -290,10 +300,6 @@ impl Scene for BeatmapEditorScene {
                     StaticSoundSettings::default(),
                 ).unwrap();
                 music = sound_manager.play(sound).unwrap();
-            }
-
-            if song_position != music.position() {
-                music.seek_to(song_position).unwrap();
             }
 
             for i in 0..song.attacks.len() {
@@ -313,7 +319,7 @@ impl Scene for BeatmapEditorScene {
                         if i == selected_attack {
                             draw_texture_ex(laser, 0.0, note_offset - 20.0,
                                             Color::new(1.0, 1.0, 1.0, 1.0), DrawTextureParams {
-                                    dest_size: Some(vec2(1000.0, 40.0)),
+                                    dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0)),
                                     ..Default::default()
                                 });
                         } else {
@@ -527,10 +533,13 @@ impl Scene for BeatmapEditorScene {
             draw_window(&mut self.window_context);
 
             set_default_camera();
+            egui_macroquad::cfg(|cfg| {
+                cfg.set_pixels_per_point(2.0);
+            });
             egui_macroquad::draw();
 
             // Quit Condition
-            if is_key_pressed(KeyCode::Escape) && !ignore_inputs {
+            if is_key_pressed(KeyCode::Escape) && is_key_down(KeyCode::LeftShift) && !ignore_inputs {
                 return Some(Box::new(MainMenuScene {
                     window_context: self.window_context.clone()
                 }));
