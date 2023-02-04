@@ -51,10 +51,10 @@ impl Scene for GameEndScene {
 
             draw_texture(background, 0.0, 0.0, WHITE);
 
-            nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x / 2.0, 20.0, 600.0, 300.0, vec2(0.5, 0.0)), WHITE);
+            nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x / 2.0, 20.0, self.window_context.active_screen_size.x - 100.0, 300.0, vec2(0.5, 0.0)), WHITE);
 
             if element_text_template(
-                justify_rect(177.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
+                justify_rect(self.window_context.active_screen_size.x / 4.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
                 button_template, mouse_pos, "Done",
                 TextParams {
                     font,
@@ -69,7 +69,7 @@ impl Scene for GameEndScene {
             }
 
             if element_text_template(
-                justify_rect(531.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
+                justify_rect(self.window_context.active_screen_size.x - self.window_context.active_screen_size.x / 4.0, 400.0 - 15.0, 96.0 * 2.0, 26.0 * 2.0, vec2(0.5, 1.0)),
                 button_template, mouse_pos, "Retry",
                 TextParams {
                     font,

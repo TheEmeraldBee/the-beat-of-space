@@ -43,9 +43,10 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let window_context = WindowContext::new(vec![
+    let mut window_context = WindowContext::new(vec![
         Aspect::new(708.0, 400.0)
     ]);
+    window_context.forced = false;
 
     // let mut scene: Box<dyn Scene> = Box::new(MainMenuScene {
     //     window_context
