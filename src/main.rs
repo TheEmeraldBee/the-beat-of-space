@@ -5,6 +5,7 @@ use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
 use crate::main_menu_scene::MainMenuScene;
+use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
 use crate::utils::Config;
 
@@ -12,11 +13,13 @@ mod utils;
 mod scene;
 
 mod note_gameplay_scene;
+mod porpus_scene;
 
 mod main_menu_scene;
 mod game_end_scene;
 
 mod beatmap_editor_scene;
+mod midi_converter;
 
 mod ui;
 
@@ -44,9 +47,16 @@ async fn main() {
         Aspect::new(708.0, 400.0)
     ]);
 
-    let mut scene: Box<dyn Scene> = Box::new(MainMenuScene {
-        window_context
-    });
+    // let mut scene: Box<dyn Scene> = Box::new(MainMenuScene {
+    //     window_context
+    // });
+
+    let midi_convert = midi_converter::MidiConverter {
+        song_path: "".to_string()
+    };
+    midi_convert.load_midi().await;
+
+    let mut scene: Box<dyn Scene> = Box::new(PorpusScene::new(window_context, "assets/songs/extreme/goldn.json"));
 
     loop {
 

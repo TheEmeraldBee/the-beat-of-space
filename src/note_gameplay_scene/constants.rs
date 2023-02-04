@@ -1,4 +1,3 @@
-
 // Arrow Position Consts
 pub const ARROW_OFFSET: f32 = 32.0;
 pub const UP_ARROW_POS: f32 = 162.5;
@@ -51,3 +50,5 @@ pub const SCALE_HOLD_PER_SECOND: f32 = 4.0;
 
 pub const SHIP_PIXEL_SIZE: f32 = 48.0;
 pub const SHIP_FAR_RIGHT: f32 = 650.0;
+
+pub const SCORE_LOSS_LASER: i32 = 500;

@@ -1,39 +1,39 @@
-use std::fs::File;
-use std::io::Write;
 use async_trait::async_trait;
-use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::manager::backend::cpal::CpalBackend;
+use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
+use std::fs::File;
+use std::io::Write;
 
 use crate::note_gameplay_scene::constants::*;
-use crate::note_gameplay_scene::score_texts::{ScoreQuality, ScoreText, ScoreType};
 use crate::note_gameplay_scene::score_texts::ScoreType::Score;
+use crate::note_gameplay_scene::score_texts::{ScoreQuality, ScoreText, ScoreType};
 use crate::note_gameplay_scene::song::Song;
 
-use thousands::Separable;
 use crate::game_end_scene::GameEndScene;
-use crate::main_menu_scene::{MainMenuScene};
+use crate::main_menu_scene::MainMenuScene;
+use thousands::Separable;
 
-use crate::Scene;
 use crate::ui::draw_text_justified;
 use crate::utils::*;
+use crate::Scene;
 
 pub mod constants;
-pub mod song;
 pub mod score_texts;
+pub mod song;
 
 pub struct NoteGameplayScene {
     pub window_context: WindowContext,
-    pub song_path: String
+    pub song_path: String,
 }
 
 impl NoteGameplayScene {
     pub fn new(window_context: WindowContext, song_path: &str) -> Self {
         Self {
             window_context,
-            song_path: song_path.to_string()
+            song_path: song_path.to_string(),
         }
     }
 }
@@ -41,7 +41,6 @@ impl NoteGameplayScene {
 #[async_trait]
 impl Scene for NoteGameplayScene {
     async fn run(&mut self) -> Option<Box<dyn Scene>> {
-
         // Fonts
         let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
 
@@ -84,20 +83,23 @@ impl Scene for NoteGameplayScene {
         let beats_per_second = song.bpm / 60.0;
         let pixels_per_beat = (NOTE_START_POS - ARROW_OFFSET) / BEATS_TO_NOTE_HIT;
 
-        let mut sound_manager = AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
-        let sound = StaticSoundData::from_file(
-            song.song_filepath.clone(),
-            StaticSoundSettings::default(),
-        ).unwrap();
+        let mut sound_manager =
+            AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
+        let sound =
+            StaticSoundData::from_file(song.song_filepath.clone(), StaticSoundSettings::default())
+                .unwrap();
 
         let mut music = sound_manager.play(sound).unwrap();
 
-        let config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+        let config =
+            serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap())
+                .unwrap();
 
         music.set_volume(config.volume, Default::default()).unwrap();
 
         // Background
-        let background_texture = quick_load_texture("assets/images/backgrounds/Space Background (3).png").await;
+        let background_texture =
+            quick_load_texture("assets/images/backgrounds/Space Background (3).png").await;
 
         let ship = quick_load_texture("assets/images/ship.png").await;
         let mut ship_position = SHIP_FAR_RIGHT / 2.0;
@@ -131,33 +133,40 @@ impl Scene for NoteGameplayScene {
 
             draw_texture(background_texture, 0.0, 0.0, Color::new(0.5, 0.5, 0.5, 1.0));
 
-            let beat = beats_per_second * ((music.position() * 1_000_000.0).round() / 1_000_000.0) as f32;
+            let beat =
+                beats_per_second * ((music.position() * 1_000_000.0).round() / 1_000_000.0) as f32;
 
             // Color Fixing
-            red_value += get_frame_time() * 2.0 * match red_increasing {
-                false => -1.0,
-                true => 1.0
-            };
+            red_value += get_frame_time()
+                * 2.0
+                * match red_increasing {
+                    false => -1.0,
+                    true => 1.0,
+                };
             if red_value >= 1.0 {
                 red_increasing = false;
             } else if red_value <= 0.2 {
                 red_increasing = true;
             }
 
-            green_value += get_frame_time() * 1.6 * match green_increasing {
-                false => -1.0,
-                true => 1.0
-            };
+            green_value += get_frame_time()
+                * 1.6
+                * match green_increasing {
+                    false => -1.0,
+                    true => 1.0,
+                };
             if green_value >= 1.0 {
                 green_increasing = false;
             } else if green_value <= 0.2 {
                 green_increasing = true;
             }
 
-            blue_value += get_frame_time() * 1.2 * match blue_increasing {
-                false => -1.0,
-                true => 1.0
-            };
+            blue_value += get_frame_time()
+                * 1.2
+                * match blue_increasing {
+                    false => -1.0,
+                    true => 1.0,
+                };
             if blue_value >= 1.0 {
                 blue_increasing = false;
             } else if blue_value <= 0.2 {
@@ -167,10 +176,14 @@ impl Scene for NoteGameplayScene {
             // Scale the thickness
             if thickness_multi_growing {
                 hold_thickness_multi += get_frame_time() * SCALE_HOLD_PER_SECOND;
-                if hold_thickness_multi >= MAX_HOLD_THICKNESS_MULTI { thickness_multi_growing = false }
+                if hold_thickness_multi >= MAX_HOLD_THICKNESS_MULTI {
+                    thickness_multi_growing = false
+                }
             } else {
                 hold_thickness_multi -= get_frame_time() * SCALE_HOLD_PER_SECOND;
-                if hold_thickness_multi <= MIN_HOLD_THICKNESS_MULTI { thickness_multi_growing = true }
+                if hold_thickness_multi <= MIN_HOLD_THICKNESS_MULTI {
+                    thickness_multi_growing = true
+                }
             }
 
             // Check For Hit Notes
@@ -182,18 +195,23 @@ impl Scene for NoteGameplayScene {
             let mut hit_notes = vec![];
 
             for (note_beat, note_type, hold_length) in &active_notes {
-
                 let note_offset = match note_type.clone() as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
                     2 => LEFT_ARROW_POS,
-                    _ => { panic!("Error! Note type: '{note_type}' unknown") }
+                    _ => {
+                        panic!("Error! Note type: '{note_type}' unknown")
+                    }
                 };
 
                 if note_beat.clone() < beat - 1.0 {
                     hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
-                    score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Miss, y_offset: note_offset});
+                    score_texts.push(ScoreText {
+                        timer: TEXT_LAST_TIME,
+                        score_type: ScoreType::Miss,
+                        y_offset: note_offset,
+                    });
                     health -= HEALTH_LOSS_MISS;
                     missed_notes += 1;
                     combo_multiplier = 1.0;
@@ -201,7 +219,11 @@ impl Scene for NoteGameplayScene {
                     continue;
                 }
 
-                if note_beat.clone() < beat - NOTE_CORRECT_RANGE || note_beat.clone() > beat + NOTE_CORRECT_RANGE { continue }
+                if note_beat.clone() < beat - NOTE_CORRECT_RANGE
+                    || note_beat.clone() > beat + NOTE_CORRECT_RANGE
+                {
+                    continue;
+                }
 
                 let diff = note_beat - beat;
                 if is_key_pressed(KeyCode::Up) && !correct_up && note_type.floor() == 3.0 {
@@ -209,7 +231,11 @@ impl Scene for NoteGameplayScene {
                     correct_up = true;
 
                     if hold_length.clone() != 0.0 {
-                        active_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                        active_holds.push((
+                            note_beat.clone(),
+                            note_type.clone(),
+                            hold_length.clone(),
+                        ));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
 
@@ -219,7 +245,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
@@ -228,7 +254,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             good_notes += 1;
                         } else {
@@ -236,7 +262,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             ok_notes += 1;
                         }
@@ -247,7 +273,11 @@ impl Scene for NoteGameplayScene {
                     correct_down = true;
 
                     if hold_length.clone() != 0.0 {
-                        active_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                        active_holds.push((
+                            note_beat.clone(),
+                            note_type.clone(),
+                            hold_length.clone(),
+                        ));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
 
@@ -257,7 +287,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
@@ -266,7 +296,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             good_notes += 1;
                         } else {
@@ -274,7 +304,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             ok_notes += 1;
                         }
@@ -285,7 +315,11 @@ impl Scene for NoteGameplayScene {
                     correct_right = true;
 
                     if hold_length.clone() != 0.0 {
-                        active_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                        active_holds.push((
+                            note_beat.clone(),
+                            note_type.clone(),
+                            hold_length.clone(),
+                        ));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
 
@@ -295,7 +329,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
@@ -304,7 +338,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             good_notes += 1;
                         } else {
@@ -312,7 +346,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             ok_notes += 1;
                         }
@@ -323,7 +357,11 @@ impl Scene for NoteGameplayScene {
                     correct_left = true;
 
                     if hold_length.clone() != 0.0 {
-                        active_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                        active_holds.push((
+                            note_beat.clone(),
+                            note_type.clone(),
+                            hold_length.clone(),
+                        ));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
 
@@ -333,7 +371,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Perfect),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
@@ -342,7 +380,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Good),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             good_notes += 1;
                         } else {
@@ -350,7 +388,7 @@ impl Scene for NoteGameplayScene {
                             score_texts.push(ScoreText {
                                 timer: TEXT_LAST_TIME,
                                 score_type: Score(ScoreQuality::Ok),
-                                y_offset: note_offset
+                                y_offset: note_offset,
                             });
                             ok_notes += 1;
                         }
@@ -359,31 +397,48 @@ impl Scene for NoteGameplayScene {
             }
 
             for hit_note in &hit_notes {
-                active_notes.retain(|x| x.0 != hit_note.0 || x.1 != hit_note.1 || x.2 != hit_note.2);
+                active_notes
+                    .retain(|x| x.0 != hit_note.0 || x.1 != hit_note.1 || x.2 != hit_note.2);
             }
 
             // Check for missed notes
             if is_key_pressed(KeyCode::Up) && !correct_up {
                 health -= HEALTH_LOSS_INCORRECT;
-                score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: UP_ARROW_POS});
+                score_texts.push(ScoreText {
+                    timer: TEXT_LAST_TIME,
+                    score_type: ScoreType::Incorrect,
+                    y_offset: UP_ARROW_POS,
+                });
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
             if is_key_pressed(KeyCode::Down) && !correct_down {
                 health -= HEALTH_LOSS_INCORRECT;
-                score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: DOWN_ARROW_POS});
+                score_texts.push(ScoreText {
+                    timer: TEXT_LAST_TIME,
+                    score_type: ScoreType::Incorrect,
+                    y_offset: DOWN_ARROW_POS,
+                });
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
             if is_key_pressed(KeyCode::Left) && !correct_left {
                 health -= HEALTH_LOSS_INCORRECT;
-                score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: LEFT_ARROW_POS});
+                score_texts.push(ScoreText {
+                    timer: TEXT_LAST_TIME,
+                    score_type: ScoreType::Incorrect,
+                    y_offset: LEFT_ARROW_POS,
+                });
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
             if is_key_pressed(KeyCode::Right) && !correct_right {
                 health -= HEALTH_LOSS_INCORRECT;
-                score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Incorrect, y_offset: RIGHT_ARROW_POS});
+                score_texts.push(ScoreText {
+                    timer: TEXT_LAST_TIME,
+                    score_type: ScoreType::Incorrect,
+                    y_offset: RIGHT_ARROW_POS,
+                });
                 combo_multiplier = 1.0;
                 incorrect_notes += 1;
             }
@@ -420,64 +475,85 @@ impl Scene for NoteGameplayScene {
             ship_position += (wanted_ship_position - ship_position) * get_frame_time();
 
             let alpha = match ship_invincibility > 0.0 {
-                true => { ship_alpha },
-                false => { 1.0 }
+                true => ship_alpha,
+                false => 1.0,
             };
 
-            draw_texture_ex(ship, ship_position, ship_height - SHIP_PIXEL_SIZE / 2.0, Color::new(1.0, 1.0, 1.0, alpha), DrawTextureParams {
-                dest_size: Some(vec2(SHIP_PIXEL_SIZE, SHIP_PIXEL_SIZE)),
-                ..Default::default()
-            });
+            draw_texture_ex(
+                ship,
+                ship_position,
+                ship_height - SHIP_PIXEL_SIZE / 2.0,
+                Color::new(1.0, 1.0, 1.0, alpha),
+                DrawTextureParams {
+                    dest_size: Some(vec2(SHIP_PIXEL_SIZE, SHIP_PIXEL_SIZE)),
+                    ..Default::default()
+                },
+            );
 
             // Check For Hold notes failed or completed
             let mut remove_holds = vec![];
             for (note_beat, note_type, hold_length) in &active_holds {
-
                 let note_offset = match note_type.clone() as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
                     2 => LEFT_ARROW_POS,
-                    _ => { panic!("Error! Note type: '{note_type}' unknown") }
+                    _ => {
+                        panic!("Error! Note type: '{note_type}' unknown")
+                    }
                 };
 
                 let mut stay_active = false;
                 let percent_done = ((beat - note_beat) / hold_length).clamp(0.0, 1.0);
-                if (is_key_down(KeyCode::Up) || is_key_down(KeyCode::W)) && note_type.floor() == 3.0 {
+                if (is_key_down(KeyCode::Up) || is_key_down(KeyCode::W)) && note_type.floor() == 3.0
+                {
                     stay_active = true
                 }
-                if (is_key_down(KeyCode::Down) || is_key_down(KeyCode::S)) && note_type.floor() == 4.0 {
+                if (is_key_down(KeyCode::Down) || is_key_down(KeyCode::S))
+                    && note_type.floor() == 4.0
+                {
                     stay_active = true
                 }
-                if (is_key_down(KeyCode::Right) || is_key_down(KeyCode::D)) && note_type.floor() == 1.0 {
+                if (is_key_down(KeyCode::Right) || is_key_down(KeyCode::D))
+                    && note_type.floor() == 1.0
+                {
                     stay_active = true
                 }
-                if (is_key_down(KeyCode::Left) || is_key_down(KeyCode::A)) && note_type.floor() == 2.0 {
+                if (is_key_down(KeyCode::Left) || is_key_down(KeyCode::A))
+                    && note_type.floor() == 2.0
+                {
                     stay_active = true
                 }
 
                 if stay_active && percent_done >= 1.0 {
-                    score += ((HOLD_SCORE_PER_BEAT as f32 / hold_length) * combo_multiplier).round() as i32;
+                    score += ((HOLD_SCORE_PER_BEAT as f32 / hold_length) * combo_multiplier).round()
+                        as i32;
                     remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     combo_multiplier *= 1.08;
                     score_texts.push(ScoreText {
                         timer: TEXT_LAST_TIME,
                         score_type: Score(ScoreQuality::Perfect),
-                        y_offset: note_offset
+                        y_offset: note_offset,
                     })
                 }
 
                 if !stay_active && percent_done <= 1.0 {
-                    score += (((HOLD_SCORE_PER_BEAT as f32 / hold_length) * percent_done) * combo_multiplier).round() as i32;
+                    score += (((HOLD_SCORE_PER_BEAT as f32 / hold_length) * percent_done)
+                        * combo_multiplier)
+                        .round() as i32;
                     remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
                     combo_multiplier *= 0.98;
                     score_texts.push(ScoreText {
                         timer: TEXT_LAST_TIME,
                         score_type: Score(ScoreQuality::Ok),
-                        y_offset: note_offset
+                        y_offset: note_offset,
                     });
 
-                    drawn_holds.push((beat, note_type.clone(), (1.0 - percent_done) * hold_length.clone()));
+                    drawn_holds.push((
+                        beat,
+                        note_type.clone(),
+                        (1.0 - percent_done) * hold_length.clone(),
+                    ));
                 }
             }
 
@@ -491,11 +567,16 @@ impl Scene for NoteGameplayScene {
             // Draw the active Holds
             let mut remove_holds = vec![];
             for (note_beat, note_type, hold_length) in &drawn_holds {
-                let note_draw_pos = ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
+                let note_draw_pos =
+                    ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
                 let mut hold_width = hold_length * pixels_per_beat;
                 let hold_draw_pos = note_draw_pos + hold_width;
 
-                let is_active = active_holds.contains(&(note_beat.clone(), note_type.clone(), hold_length.clone()));
+                let is_active = active_holds.contains(&(
+                    note_beat.clone(),
+                    note_type.clone(),
+                    hold_length.clone(),
+                ));
 
                 if hold_draw_pos <= 15.0 && is_active {
                     remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()))
@@ -507,10 +588,16 @@ impl Scene for NoteGameplayScene {
                     hold_width = hold_draw_pos - 13.0;
                 }
 
-                draw_hold(note_type.clone(), hold_draw_pos, hold_width, hold_note, match is_active {
-                    true => hold_thickness_multi,
-                    false => 1.0
-                });
+                draw_hold(
+                    note_type.clone(),
+                    hold_draw_pos,
+                    hold_width,
+                    hold_note,
+                    match is_active {
+                        true => hold_thickness_multi,
+                        false => 1.0,
+                    },
+                );
             }
 
             for remove_hold in &remove_holds {
@@ -519,8 +606,16 @@ impl Scene for NoteGameplayScene {
 
             // Draw the active Notes
             for (note_beat, note_type, _hold_length) in &active_notes {
-                let note_draw_pos = ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
-                draw_note(note_type.clone(), note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
+                let note_draw_pos =
+                    ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
+                draw_note(
+                    note_type.clone(),
+                    note_draw_pos,
+                    input_note_left,
+                    input_note_right,
+                    input_note_up,
+                    input_note_down,
+                );
             }
 
             // Check Scale Up
@@ -564,74 +659,128 @@ impl Scene for NoteGameplayScene {
             }
 
             // Draw the Input Notes
-            draw_texture_ex(input_note_left, ARROW_OFFSET - (NOTE_SIZE * left_scale) / 2.0, LEFT_ARROW_POS - (NOTE_SIZE * left_scale) / 2.0, GREEN, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE * left_scale, NOTE_SIZE * left_scale)),
-                ..Default::default()
-            });
-            draw_texture_ex(input_note_up, ARROW_OFFSET - (NOTE_SIZE * up_scale) / 2.0, UP_ARROW_POS - (NOTE_SIZE * up_scale) / 2.0, SKYBLUE, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE * up_scale, NOTE_SIZE * up_scale)),
-                ..Default::default()
-            });
-            draw_texture_ex(input_note_right, ARROW_OFFSET - (NOTE_SIZE * right_scale) / 2.0, RIGHT_ARROW_POS - (NOTE_SIZE * right_scale) / 2.0, ORANGE, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE * right_scale, NOTE_SIZE * right_scale)),
-                ..Default::default()
-            });
-            draw_texture_ex(input_note_down, ARROW_OFFSET - (NOTE_SIZE * down_scale) / 2.0, DOWN_ARROW_POS - (NOTE_SIZE * down_scale) / 2.0, RED, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE * down_scale, NOTE_SIZE * down_scale)),
-                ..Default::default()
-            });
+            draw_texture_ex(
+                input_note_left,
+                ARROW_OFFSET - (NOTE_SIZE * left_scale) / 2.0,
+                LEFT_ARROW_POS - (NOTE_SIZE * left_scale) / 2.0,
+                GREEN,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE * left_scale, NOTE_SIZE * left_scale)),
+                    ..Default::default()
+                },
+            );
+            draw_texture_ex(
+                input_note_up,
+                ARROW_OFFSET - (NOTE_SIZE * up_scale) / 2.0,
+                UP_ARROW_POS - (NOTE_SIZE * up_scale) / 2.0,
+                SKYBLUE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE * up_scale, NOTE_SIZE * up_scale)),
+                    ..Default::default()
+                },
+            );
+            draw_texture_ex(
+                input_note_right,
+                ARROW_OFFSET - (NOTE_SIZE * right_scale) / 2.0,
+                RIGHT_ARROW_POS - (NOTE_SIZE * right_scale) / 2.0,
+                ORANGE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE * right_scale, NOTE_SIZE * right_scale)),
+                    ..Default::default()
+                },
+            );
+            draw_texture_ex(
+                input_note_down,
+                ARROW_OFFSET - (NOTE_SIZE * down_scale) / 2.0,
+                DOWN_ARROW_POS - (NOTE_SIZE * down_scale) / 2.0,
+                RED,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE * down_scale, NOTE_SIZE * down_scale)),
+                    ..Default::default()
+                },
+            );
 
             // ATTACKS!
             // Scale the thickness
             if ship_alpha_growing {
                 ship_alpha += get_frame_time() * SCALE_ALPHA_PER_SECOND;
-                if ship_alpha >= 1.0 { ship_alpha_growing = false }
+                if ship_alpha >= 1.0 {
+                    ship_alpha_growing = false
+                }
             } else {
                 ship_alpha -= get_frame_time() * SCALE_ALPHA_PER_SECOND;
-                if ship_alpha <= 0.25 { ship_alpha_growing = true }
+                if ship_alpha <= 0.25 {
+                    ship_alpha_growing = true
+                }
             }
 
             ship_invincibility -= get_frame_time();
 
             let mut remove_attacks = vec![];
             for (attack_beat, last_length, note_type) in &song_attacks {
-
                 let note_offset = match note_type.clone() as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
                     2 => LEFT_ARROW_POS,
-                    _ => { panic!("Error! Note type: '{note_type}' unknown") }
+                    _ => {
+                        panic!("Error! Note type: '{note_type}' unknown")
+                    }
                 };
 
                 if attack_beat.clone() + last_length.clone() <= beat {
-                    remove_attacks.push((attack_beat.clone(), last_length.clone(), note_type.clone()));
+                    remove_attacks.push((
+                        attack_beat.clone(),
+                        last_length.clone(),
+                        note_type.clone(),
+                    ));
                     continue;
                 }
 
                 if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
                     let difference = 5.0 - (attack_beat.clone() - beat);
 
-                    draw_texture_ex(laser, 0.0, note_offset - (40.0 * hold_thickness_multi) / 2.0,
-                                    Color::new(red_value, green_value, blue_value, 1.0), DrawTextureParams {
-                            dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0 * hold_thickness_multi)),
+                    draw_texture_ex(
+                        laser,
+                        0.0,
+                        note_offset - (40.0 * hold_thickness_multi) / 2.0,
+                        Color::new(red_value, green_value, blue_value, 1.0),
+                        DrawTextureParams {
+                            dest_size: Some(vec2(
+                                difference * difference * difference * 2.0,
+                                40.0 * hold_thickness_multi,
+                            )),
                             ..Default::default()
-                        });
+                        },
+                    );
                 }
 
                 if attack_beat.clone() >= beat {
                     continue;
                 }
 
-                draw_texture_ex(laser, 0.0, note_offset - (40.0 * hold_thickness_multi) / 2.0,
-                                Color::new(red_value, green_value, blue_value, 1.0), DrawTextureParams {
+                draw_texture_ex(
+                    laser,
+                    0.0,
+                    note_offset - (40.0 * hold_thickness_multi) / 2.0,
+                    Color::new(red_value, green_value, blue_value, 1.0),
+                    DrawTextureParams {
                         dest_size: Some(vec2(1000.0, 40.0 * hold_thickness_multi)),
                         ..Default::default()
-                    });
+                    },
+                );
 
-                if ship_height <= note_offset + 40.0 && ship_height >= note_offset - 40.0 && ship_invincibility <= 0.0 {
+                if ship_height <= note_offset + 40.0
+                    && ship_height >= note_offset - 40.0
+                    && ship_invincibility <= 0.0
+                {
                     health -= HEALTH_LOSS_LASER;
-                    score_texts.push(ScoreText {timer: TEXT_LAST_TIME, score_type: ScoreType::Miss, y_offset: note_offset});
+                    score -= SCORE_LOSS_LASER;
+                    score_texts.push(ScoreText {
+                        timer: TEXT_LAST_TIME,
+                        score_type: ScoreType::Miss,
+                        y_offset: note_offset,
+                    });
 
                     ship_invincibility = 1.0;
                 }
@@ -652,22 +801,31 @@ impl Scene for NoteGameplayScene {
                 score_texts.retain(|x| x != remove_text);
             }
 
-            draw_text_justified(format!("SCORE: {}", score.separate_with_commas()).as_str(), vec2(5.0, 5.0), TextParams {
-                font,
-                font_size: 75,
-                font_scale: 0.25,
-                color: WHITE,
-                ..Default::default()
-            }, vec2(0.0, 1.0));
+            draw_text_justified(
+                format!("SCORE: {}", score.separate_with_commas()).as_str(),
+                vec2(5.0, 5.0),
+                TextParams {
+                    font,
+                    font_size: 75,
+                    font_scale: 0.25,
+                    color: WHITE,
+                    ..Default::default()
+                },
+                vec2(0.0, 1.0),
+            );
 
-            draw_text_justified(format!("{}", song.credits).as_str(), vec2(708.0 - 5.0, 400.0 - 5.0), TextParams {
-                font,
-                font_size: 40,
-                font_scale: 0.25,
-                color: WHITE,
-                ..Default::default()
-            }, vec2(1.0, 0.0));
-
+            draw_text_justified(
+                format!("{}", song.credits).as_str(),
+                vec2(708.0 - 5.0, 400.0 - 5.0),
+                TextParams {
+                    font,
+                    font_size: 40,
+                    font_scale: 0.25,
+                    color: WHITE,
+                    ..Default::default()
+                },
+                vec2(1.0, 0.0),
+            );
 
             // Clamp the health value to a max
             health = health.clamp(0, MAX_HEALTH);
@@ -675,7 +833,7 @@ impl Scene for NoteGameplayScene {
             // Close Conditions
             if is_key_pressed(KeyCode::Escape) {
                 return Some(Box::new(MainMenuScene {
-                    window_context: self.window_context.clone()
+                    window_context: self.window_context.clone(),
                 }));
             }
 
@@ -686,15 +844,29 @@ impl Scene for NoteGameplayScene {
             game_over_timer.update();
 
             if game_over_timer.running {
-                music.set_playback_rate(1.0f64 - game_over_timer.percent_done() as f64, Default::default()).unwrap();
+                music
+                    .set_playback_rate(
+                        1.0f64 - game_over_timer.percent_done() as f64,
+                        Default::default(),
+                    )
+                    .unwrap();
 
-                draw_text_justified("GAME OVER", vec2(self.window_context.active_screen_size.x / 2.0, (self.window_context.active_screen_size.y / 2.0) * game_over_timer.percent_done()), TextParams {
-                    font,
-                    font_size: 250,
-                    font_scale: 0.25,
-                    color: Color::new(0.9, 0.8, 0.8, game_over_timer.percent_done()),
-                    ..Default::default()
-                }, vec2(0.5, 0.5));
+                draw_text_justified(
+                    "GAME OVER",
+                    vec2(
+                        self.window_context.active_screen_size.x / 2.0,
+                        (self.window_context.active_screen_size.y / 2.0)
+                            * game_over_timer.percent_done(),
+                    ),
+                    TextParams {
+                        font,
+                        font_size: 250,
+                        font_scale: 0.25,
+                        color: Color::new(0.9, 0.8, 0.8, game_over_timer.percent_done()),
+                        ..Default::default()
+                    },
+                    vec2(0.5, 0.5),
+                );
             }
 
             if game_over_timer.is_done() {
@@ -707,18 +879,18 @@ impl Scene for NoteGameplayScene {
                     good_notes,
                     ok_notes,
                     incorrect_notes,
-                    missed_notes
+                    missed_notes,
                 }));
             }
 
             if music.position() >= song.song_length as f64 {
-
                 if song.high_score < score {
                     song.high_score = score;
                 }
 
                 let mut data = File::create(self.song_path.clone()).unwrap();
-                data.write_all((serde_json::to_string_pretty(&song.clone()).unwrap()).as_ref()).unwrap();
+                data.write_all((serde_json::to_string_pretty(&song.clone()).unwrap()).as_ref())
+                    .unwrap();
 
                 return Some(Box::new(GameEndScene {
                     window_context: self.window_context.clone(),
@@ -729,7 +901,7 @@ impl Scene for NoteGameplayScene {
                     good_notes,
                     ok_notes,
                     incorrect_notes,
-                    missed_notes
+                    missed_notes,
                 }));
             }
 
@@ -740,66 +912,139 @@ impl Scene for NoteGameplayScene {
     }
 }
 
-pub fn draw_note(direction: f32, location: f32, left_tex: Texture2D, right_tex: Texture2D, up_tex: Texture2D, down_tex: Texture2D) {
+pub fn draw_note(
+    direction: f32,
+    location: f32,
+    left_tex: Texture2D,
+    right_tex: Texture2D,
+    up_tex: Texture2D,
+    down_tex: Texture2D,
+) {
     let direction = direction.round() as i32;
     match direction {
-        1 => { // Right
-            draw_texture_ex(right_tex, location, RIGHT_ARROW_POS - NOTE_SIZE / 2.0, ORANGE, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
-                ..Default::default()
-            });
-        },
-        2 => { // Left
-            draw_texture_ex(left_tex, location, LEFT_ARROW_POS - NOTE_SIZE / 2.0, GREEN, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
-                ..Default::default()
-            });
-        },
-        3 => { // Up
-            draw_texture_ex(up_tex, location, UP_ARROW_POS - NOTE_SIZE / 2.0, SKYBLUE, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
-                ..Default::default()
-            });
-        },
-        4 => { // Down
-            draw_texture_ex(down_tex, location, DOWN_ARROW_POS - NOTE_SIZE / 2.0, RED, DrawTextureParams {
-                dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
-                ..Default::default()
-            });
-        },
-        _ => { todo!("Add direction drawing for note type.") }
+        1 => {
+            // Right
+            draw_texture_ex(
+                right_tex,
+                location,
+                RIGHT_ARROW_POS - NOTE_SIZE / 2.0,
+                ORANGE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
+                    ..Default::default()
+                },
+            );
+        }
+        2 => {
+            // Left
+            draw_texture_ex(
+                left_tex,
+                location,
+                LEFT_ARROW_POS - NOTE_SIZE / 2.0,
+                GREEN,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
+                    ..Default::default()
+                },
+            );
+        }
+        3 => {
+            // Up
+            draw_texture_ex(
+                up_tex,
+                location,
+                UP_ARROW_POS - NOTE_SIZE / 2.0,
+                SKYBLUE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
+                    ..Default::default()
+                },
+            );
+        }
+        4 => {
+            // Down
+            draw_texture_ex(
+                down_tex,
+                location,
+                DOWN_ARROW_POS - NOTE_SIZE / 2.0,
+                RED,
+                DrawTextureParams {
+                    dest_size: Some(vec2(NOTE_SIZE, NOTE_SIZE)),
+                    ..Default::default()
+                },
+            );
+        }
+        _ => {
+            panic!("Add direction drawing for note type.")
+        }
     }
 }
 
-pub fn draw_hold(direction: f32, location: f32, width: f32, texture: Texture2D, thickness_multi: f32) {
+pub fn draw_hold(
+    direction: f32,
+    location: f32,
+    width: f32,
+    texture: Texture2D,
+    thickness_multi: f32,
+) {
     let direction = direction.round() as i32;
     let note_height = NOTE_SIZE * thickness_multi;
     let location = location + 20.0;
     match direction {
-        1 => { // Right
-            draw_texture_ex(texture, location, RIGHT_ARROW_POS - note_height / 2.0, ORANGE, DrawTextureParams {
-                dest_size: Some(vec2(-width, note_height)),
-                ..Default::default()
-            });
-        },
-        2 => { // Left
-            draw_texture_ex(texture, location, LEFT_ARROW_POS - note_height / 2.0, GREEN, DrawTextureParams {
-                dest_size: Some(vec2(-width, note_height)),
-                ..Default::default()
-            });
-        },
-        3 => { // Up
-            draw_texture_ex(texture, location, UP_ARROW_POS - note_height / 2.0, SKYBLUE, DrawTextureParams {
-                dest_size: Some(vec2(-width, note_height)),
-                ..Default::default()
-            });
-        },
-        4 => { // Down
-            draw_texture_ex(texture, location, DOWN_ARROW_POS - note_height / 2.0, RED, DrawTextureParams {
-                dest_size: Some(vec2(-width, note_height)),
-                ..Default::default()
-            });
-        },
-        _ => { todo!("Add direction drawing for note type.") }
+        1 => {
+            // Right
+            draw_texture_ex(
+                texture,
+                location,
+                RIGHT_ARROW_POS - note_height / 2.0,
+                ORANGE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(-width, note_height)),
+                    ..Default::default()
+                },
+            );
+        }
+        2 => {
+            // Left
+            draw_texture_ex(
+                texture,
+                location,
+                LEFT_ARROW_POS - note_height / 2.0,
+                GREEN,
+                DrawTextureParams {
+                    dest_size: Some(vec2(-width, note_height)),
+                    ..Default::default()
+                },
+            );
+        }
+        3 => {
+            // Up
+            draw_texture_ex(
+                texture,
+                location,
+                UP_ARROW_POS - note_height / 2.0,
+                SKYBLUE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(-width, note_height)),
+                    ..Default::default()
+                },
+            );
+        }
+        4 => {
+            // Down
+            draw_texture_ex(
+                texture,
+                location,
+                DOWN_ARROW_POS - note_height / 2.0,
+                RED,
+                DrawTextureParams {
+                    dest_size: Some(vec2(-width, note_height)),
+                    ..Default::default()
+                },
+            );
+        }
+        _ => {
+            panic!("Add direction drawing for note type.")
+        }
     }
 }
