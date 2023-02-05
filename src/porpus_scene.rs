@@ -647,7 +647,7 @@ impl Scene for PorpusScene {
 
             draw_text_justified(
                 format!("{}", song.credits).as_str(),
-                vec2(708.0 - 5.0, 400.0 - 5.0),
+                vec2(self.window_context.active_screen_size.x - 5.0, self.window_context.active_screen_size.y - 5.0),
                 TextParams {
                     font,
                     font_size: 40,
