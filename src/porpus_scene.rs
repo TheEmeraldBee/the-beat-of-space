@@ -658,6 +658,19 @@ impl Scene for PorpusScene {
                 vec2(1.0, 0.0),
             );
 
+            draw_text_justified(
+                "Performed By Porpus",
+                vec2(self.window_context.active_screen_size.x - 5.0, 5.0),
+                TextParams {
+                    font,
+                    font_size: 50,
+                    font_scale: 0.25,
+                    color: WHITE,
+                    ..Default::default()
+                },
+                vec2(1.0, 1.0),
+            );
+
             // Clamp the health value to a max
             health = health.clamp(0, MAX_HEALTH);
 
