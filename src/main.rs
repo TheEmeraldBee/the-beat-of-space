@@ -52,10 +52,10 @@ async fn main() {
     //     window_context
     // });
 
-    let midi_convert = midi_converter::MidiConverter {
-        song_path: "".to_string()
-    };
-    midi_convert.load_midi().await;
+    // let midi_convert = midi_converter::MidiConverter {
+    //     song_path: "".to_string()
+    // };
+    // midi_convert.load_midi().await;
 
     let mut scene: Box<dyn Scene> = Box::new(PorpusScene::new(window_context, "assets/songs/extreme/goldn.json"));
 
