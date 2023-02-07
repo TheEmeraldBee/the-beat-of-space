@@ -47,6 +47,7 @@ impl Scene for BeatmapEditorScene {
 
         let mut music = sound_manager.play(sound).unwrap();
         let mut song_position;
+        let mut song_position_slider = 0.0;
 
         let mut reload = false;
         let mut test = false;
@@ -123,10 +124,6 @@ impl Scene for BeatmapEditorScene {
                         } else if play_response.clicked() || (is_key_pressed(KeyCode::Space) && !ignore_inputs && paused) {
                             music.resume(Default::default()).unwrap();
                             paused = false;
-                        }
-
-                        if ui.add(egui::Slider::new(&mut song_position, 0.0..=(song.song_length * beats_per_second) as f64).clamp_to_range(true)).changed() {
-                            music.seek_to(song_position * beats_per_second as f64).unwrap();
                         }
 
                         if ui.button("Test Song").clicked() {
