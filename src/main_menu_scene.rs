@@ -217,13 +217,13 @@ impl Scene for MainMenuScene {
                 MenuState::PlayMenu => {
                     // Difficulty Selection Menu
                     nine_slice_frame.draw(
-                        justify_rect(50.0, 50.0, 96.0 * 2.0, 96.0 * 2.5, vec2(0.0, 0.0)),
+                        justify_rect(50.0, 50.0, self.window_context.active_screen_size.x / 4.0, 96.0 * 2.5, vec2(0.0, 0.0)),
                         WHITE
                     );
 
                     // Easy Button
                     if element_text_template(
-                        justify_rect(50.0 + 96.0, 75.0, 96.0 * 1.5, 30.0, vec2(0.5, 0.0)),
+                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
                         match active_difficulty {
                             Difficulty::Easy => { button_template }
                             _ => { faint_button_template }
@@ -251,7 +251,7 @@ impl Scene for MainMenuScene {
 
                     // Medium Button
                     if element_text_template(
-                        justify_rect(50.0 + 96.0, 75.0 + 40.0, 96.0 * 1.5, 30.0, vec2(0.5, 0.0)),
+                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 40.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
                         match active_difficulty {
                             Difficulty::Medium => { button_template }
                             _ => { faint_button_template }
@@ -279,7 +279,7 @@ impl Scene for MainMenuScene {
 
                     // Hard Button
                     if element_text_template(
-                        justify_rect(50.0 + 96.0, 75.0 + 80.0, 96.0 * 1.5, 30.0, vec2(0.5, 0.0)),
+                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 80.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
                         match active_difficulty {
                             Difficulty::Hard => { button_template }
                             _ => { faint_button_template }
@@ -307,7 +307,7 @@ impl Scene for MainMenuScene {
 
                     // Expert Button
                     if element_text_template(
-                        justify_rect(50.0 + 96.0, 75.0 + 120.0, 96.0 * 1.5, 30.0, vec2(0.5, 0.0)),
+                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 120.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
                         match active_difficulty {
                             Difficulty::Expert => { button_template }
                             _ => { faint_button_template }
@@ -335,7 +335,7 @@ impl Scene for MainMenuScene {
 
                     // Extreme Button
                     if element_text_template(
-                        justify_rect(50.0 + 96.0, 75.0 + 160.0, 96.0 * 1.5, 30.0, vec2(0.5, 0.0)),
+                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 160.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
                         match active_difficulty {
                             Difficulty::Extreme => { button_template }
                             _ => { faint_button_template }
@@ -361,13 +361,16 @@ impl Scene for MainMenuScene {
                         song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
+                    let song_data_left = self.window_context.active_screen_size.x - 50.0 - self.window_context.active_screen_size.x * 0.56;
+                    let song_data_center = self.window_context.active_screen_size.x - 50.0 - (self.window_context.active_screen_size.x * 0.56) / 2.0;
+
                     if !changing_song {
                         // Song Data Panel
-                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 50.0, 50.0, 400.0, 240.0, vec2(1.0, 0.0)), WHITE);
+                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 50.0, 50.0, self.window_context.active_screen_size.x * 0.56, 240.0, vec2(1.0, 0.0)), WHITE);
 
                         draw_text_justified(
                             song_database.songs[chosen_song_idx].name.as_str(),
-                            vec2(self.window_context.active_screen_size.x - 50.0 - 200.0, 80.0),
+                            vec2(song_data_center, 80.0),
                             TextParams {
                                 font,
                                 font_size: 125,
@@ -377,7 +380,7 @@ impl Scene for MainMenuScene {
 
                         draw_text_justified(
                             &format!("High Score: {}", song.high_score.separate_with_commas()),
-                            vec2(self.window_context.active_screen_size.x - 425.0, 175.0),
+                            vec2(song_data_left + 25.0, 175.0),
                             TextParams {
                                 font,
                                 font_size: 40,
@@ -387,7 +390,7 @@ impl Scene for MainMenuScene {
 
                         draw_text_justified(
                             &format!("Length: {} Seconds", song.song_length),
-                            vec2(self.window_context.active_screen_size.x - 425.0, 125.0),
+                            vec2(song_data_left + 25.0, 125.0),
                             TextParams {
                                 font,
                                 font_size: 40,
@@ -397,7 +400,7 @@ impl Scene for MainMenuScene {
 
                         // Change Song Button
                         if element_text_template(
-                            justify_rect(self.window_context.active_screen_size.x - 50.0 - 100.0, self.window_context.active_screen_size.y - 60.0, 96.0 * 1.5, 26.0 * 1.5, vec2(0.5, 1.0)),
+                            justify_rect(song_data_center + 100.0, self.window_context.active_screen_size.y - 60.0, 96.0 * 1.5, 26.0 * 1.5, vec2(0.5, 1.0)),
                             button_template,
                             mouse_pos,
                             "Songs",
@@ -413,13 +416,13 @@ impl Scene for MainMenuScene {
 
                     } else {
                         // Song Choice Panel
-                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 250.0, 50.0, 200.0, 240.0, vec2(1.0, 0.0)), WHITE);
+                        nine_slice_frame.draw(justify_rect(song_data_center - 100.0, 50.0, self.window_context.active_screen_size.x * 0.28, 240.0, vec2(0.5, 0.0)), WHITE);
 
                         let mut total_songs = 0;
                         for song_idx in 0..song_database.songs.len() {
                             if song_database.songs[song_idx].difficulties.contains(&active_difficulty.to_string()) {
                                 if element_text_template(
-                                    justify_rect(self.window_context.active_screen_size.x - 425.0, 75.0 + (50.0 * total_songs as f32), 95.0 * 1.5, 26.0 * 1.5, vec2(0.0, 0.0)),
+                                    justify_rect(song_data_center - 100.0, 75.0 + (50.0 * total_songs as f32), self.window_context.active_screen_size.x * 0.22, 26.0 * 1.5, vec2(0.5, 0.0)),
                                     {
                                         if song_idx == chosen_song_idx {
                                             button_template
@@ -448,7 +451,7 @@ impl Scene for MainMenuScene {
 
                     // Play Button
                     if element_text_template(
-                        justify_rect(self.window_context.active_screen_size.x - 50.0 - 300.0, self.window_context.active_screen_size.y - 60.0, 96.0 * 1.5, 26.0 * 1.5, vec2(0.5, 1.0)),
+                        justify_rect(song_data_center - 100.0, self.window_context.active_screen_size.y - 60.0, 96.0 * 1.5, 26.0 * 1.5, vec2(0.5, 1.0)),
                         button_template,
                         mouse_pos,
                         "Play",
