@@ -10,8 +10,9 @@ use macroquad_aspect::prelude::*;
 
 use crate::main_menu_scene::MainMenuScene;
 use crate::note_gameplay_scene::constants::{ARROW_OFFSET, BEATS_TO_NOTE_HIT, DOWN_ARROW_POS, LEFT_ARROW_POS, NOTE_SIZE, NOTE_START_POS, RIGHT_ARROW_POS, UP_ARROW_POS};
-use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene};
+use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene, ReturnTo};
 use crate::note_gameplay_scene::song::Song;
+use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
 use crate::utils::{is_hovering_rect, quick_load_texture};
 
@@ -23,7 +24,8 @@ pub struct UndoEdit {
 }
 
 pub struct BeatmapEditorScene {
-    pub window_context: WindowContext
+    pub window_context: WindowContext,
+    pub song_path: String
 }
 
 #[async_trait]
@@ -32,6 +34,10 @@ impl Scene for BeatmapEditorScene {
 
         let mut last_functional_song_path = "assets/songs/easy/goldn.json".to_string();
         let mut song_path = "assets/songs/easy/goldn.json".to_string();
+
+        if self.song_path != String::default() {
+            song_path = self.song_path.clone();
+        }
 
         let song_json = load_string(&song_path).await.unwrap();
         let mut song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
@@ -46,14 +52,14 @@ impl Scene for BeatmapEditorScene {
         ).unwrap();
 
         let mut music = sound_manager.play(sound).unwrap();
-        let mut song_position;
-        let mut song_position_slider = 0.0;
-
         let mut reload = false;
         let mut test = false;
+        let mut watch = false;
 
         let mut selected_note: usize = 10_000_000;
         let mut selected_attack: usize = 10_000_000;
+
+        let mut pixels_per_point = 1.0;
 
         // Input Notes
         let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
@@ -76,8 +82,6 @@ impl Scene for BeatmapEditorScene {
 
             let mut ignore_inputs = false;
 
-            song_position = music.position() * beats_per_second as f64;
-
             egui_macroquad::ui(|egui_ctx| {
                 egui::Window::new("Main Editor")
                     .resizable(true)
@@ -93,7 +97,7 @@ impl Scene for BeatmapEditorScene {
                             ui.label("Y/H Increase/Decrease Hold Length");
                             ui.label("O Rotate Note");
                             ui.label("I/K Move Song Position");
-
+                            ui.label("+/- Increase/Decrease Menu Scale")
                         });
 
                         let response = ui.text_edit_singleline(&mut song_path);
@@ -126,13 +130,22 @@ impl Scene for BeatmapEditorScene {
                             paused = false;
                         }
 
-                        if ui.button("Test Song").clicked() {
+                        if ui.button("Play Song").clicked() {
                             let mut file = File::create(song_path.clone()).unwrap();
                             let cloned_song = song.clone();
                             file.write_all(serde_json::to_string_pretty(&cloned_song).unwrap().as_ref()).unwrap();
 
                             reload = true;
                             test = true;
+                        }
+
+                        if ui.button("Watch Song").clicked() {
+                            let mut file = File::create(song_path.clone()).unwrap();
+                            let cloned_song = song.clone();
+                            file.write_all(serde_json::to_string_pretty(&cloned_song).unwrap().as_ref()).unwrap();
+
+                            reload = true;
+                            watch = true;
                         }
                     });
                 egui::Window::new("Note Editor")
@@ -274,7 +287,10 @@ impl Scene for BeatmapEditorScene {
             }
 
             if test {
-                return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &song_path)))
+                return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &song_path, ReturnTo::Editor)))
+            }
+            if watch {
+                return Some(Box::new(PorpusScene::new(self.window_context.clone(), &song_path, ReturnTo::Editor)))
             }
 
             if is_key_pressed(KeyCode::I) && !ignore_inputs {
@@ -529,16 +545,25 @@ impl Scene for BeatmapEditorScene {
 
             draw_window(&mut self.window_context);
 
+            // Menu Scaling
+            if is_key_pressed(KeyCode::Equal) {
+                pixels_per_point += 0.1;
+            } else if is_key_pressed(KeyCode::Minus) {
+                pixels_per_point -= 0.1;
+            }
+
             set_default_camera();
             egui_macroquad::cfg(|cfg| {
-                cfg.set_pixels_per_point(2.0);
+                cfg.set_pixels_per_point(pixels_per_point);
             });
             egui_macroquad::draw();
 
             // Quit Condition
             if is_key_pressed(KeyCode::Escape) && is_key_down(KeyCode::LeftShift) && !ignore_inputs {
                 return Some(Box::new(MainMenuScene {
-                    window_context: self.window_context.clone()
+                    window_context: self.window_context.clone(),
+                    selected_difficulty: None,
+                    selected_song_idx: None
                 }));
             }
 

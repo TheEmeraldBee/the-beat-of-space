@@ -10,8 +10,9 @@ use serde::{Deserialize, Serialize};
 use thousands::Separable;
 use crate::beatmap_editor_scene::BeatmapEditorScene;
 
-use crate::note_gameplay_scene::NoteGameplayScene;
+use crate::note_gameplay_scene::{NoteGameplayScene, ReturnTo};
 use crate::note_gameplay_scene::song::Song;
+use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
 use crate::ui::*;
 use crate::utils::{Config, quick_load_texture, Timer};
@@ -23,6 +24,7 @@ pub enum MenuState {
     Loading
 }
 
+#[derive(Clone)]
 pub enum Difficulty {
     Easy,
     Medium,
@@ -56,7 +58,9 @@ impl Difficulty {
 }
 
 pub struct MainMenuScene {
-    pub window_context: WindowContext
+    pub window_context: WindowContext,
+    pub selected_difficulty: Option<Difficulty>,
+    pub selected_song_idx: Option<usize>
 }
 
 #[async_trait]
@@ -119,11 +123,18 @@ impl Scene for MainMenuScene {
         let mut music = sound_manager.play(sound).unwrap();
 
         let mut load_scene_timer = Timer::new(3.5, false);
+        let mut load_watch_timer = Timer::new(3.5, false);
 
-        let mut active_difficulty = Difficulty::Easy;
+        let mut active_difficulty = match self.selected_difficulty.clone() {
+            Some(difficulty) => difficulty,
+            None => Difficulty::Easy
+        };
 
         let song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/song_data.json").await.unwrap()).unwrap();
-        let mut chosen_song_idx = 0usize;
+        let mut chosen_song_idx = match self.selected_song_idx {
+            Some(idx) => idx,
+            None => 0usize
+        };
 
         let mut song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
 
@@ -466,6 +477,23 @@ impl Scene for MainMenuScene {
                         load_scene_timer.start();
                     }
 
+                    // Watch Button
+                    if element_text_template(
+                        justify_rect(song_data_center - 100.0, self.window_context.active_screen_size.y - 20.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.5, 1.0)),
+                        button_template,
+                        mouse_pos,
+                        "Watch",
+                        TextParams {
+                            font,
+                            font_size: 60,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ).clicked() {
+                        state = MenuState::Loading;
+                        load_watch_timer.start();
+                    }
+
                     // Back Button
                     if element_text_template(
                         justify_rect(50.0, self.window_context.active_screen_size.y - 70.0, 96.0 * 1.3, 26.0 * 1.3, vec2(0.0, 1.0)),
@@ -479,7 +507,11 @@ impl Scene for MainMenuScene {
                             ..Default::default()
                         }
                     ).clicked() {
-                        state = MenuState::MainMenu
+                        if changing_song {
+                            changing_song = false;
+                        } else {
+                            state = MenuState::MainMenu
+                        }
                     }
                 }
                 MenuState::Settings => {
@@ -570,7 +602,12 @@ impl Scene for MainMenuScene {
                     }
                 }
                 MenuState::Loading => {
-                    let dots = (load_scene_timer.percent_done() * 5.0).round() as i32 % 4;
+                    let dots;
+                    if load_scene_timer.running {
+                        dots = (load_scene_timer.percent_done() * 5.0).round() as i32 % 4;
+                    } else {
+                        dots = (load_watch_timer.percent_done() * 5.0).round() as i32 % 4
+                    }
 
                     let mut text = "Loading".to_string();
 
@@ -588,20 +625,34 @@ impl Scene for MainMenuScene {
             }
 
             load_scene_timer.update();
+            load_watch_timer.update();
 
             if load_scene_timer.running {
                 music.set_volume(config.volume * (1.0 - load_scene_timer.percent_done()) as f64, Default::default()).unwrap();
             }
 
+            if load_watch_timer.running {
+                music.set_volume(config.volume * (1.0 - load_watch_timer.percent_done()) as f64, Default::default()).unwrap();
+            }
+
             if load_scene_timer.is_done() {
                 return Some(Box::new(NoteGameplayScene::new(
                     self.window_context.clone(),
-                    format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name).as_str()))
-                );
+                    format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name).as_str(),
+                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx.clone())
+                )));
+            }
+
+            if load_watch_timer.is_done() {
+                return Some(Box::new(PorpusScene::new(
+                    self.window_context.clone(),
+                    format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name).as_str(),
+                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx.clone())
+                )));
             }
 
             if is_key_pressed(KeyCode::F12) {
-                return Some(Box::new(BeatmapEditorScene { window_context: self.window_context.clone() }));
+                return Some(Box::new(BeatmapEditorScene { window_context: self.window_context.clone(), song_path: Default::default() }));
             }
 
             if is_key_pressed(KeyCode::Escape) {

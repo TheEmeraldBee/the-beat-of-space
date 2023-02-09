@@ -1,11 +1,11 @@
 #![windows_subsystem = "windows"]
 
+use std::env;
 use std::fs::{read_to_string};
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
 use crate::main_menu_scene::MainMenuScene;
-use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
 use crate::utils::Config;
 
@@ -43,21 +43,41 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+
+    let args: Vec<String> = env::args().collect();
+
+    for i in 0..args.len() {
+        let arg = args[i].clone();
+        match arg.as_str() {
+            "midi" => {
+                let bpm = args[i + 1].clone().parse::<f32>().unwrap();
+                let midi_path = args[i + 2].clone();
+                let song_path =  args[i + 3].clone();
+
+                let midi_convert = midi_converter::MidiConverter {
+                    bpm,
+                    midi_path,
+                    song_path
+                };
+                midi_convert.load_midi().await;
+
+                return;
+            }
+            _ => {}
+        }
+    }
+
+
     let mut window_context = WindowContext::new(vec![
         Aspect::new(708.0, 400.0)
     ]);
     window_context.forced = false;
 
-    // let mut scene: Box<dyn Scene> = Box::new(MainMenuScene {
-    //     window_context
-    // });
-
-    // let midi_convert = midi_converter::MidiConverter {
-    //     song_path: "".to_string()
-    // };
-    // midi_convert.load_midi().await;
-
-    let mut scene: Box<dyn Scene> = Box::new(PorpusScene::new(window_context, "assets/songs/extreme/goldn.json"));
+    let mut scene: Box<dyn Scene> = Box::new(MainMenuScene {
+        window_context,
+        selected_difficulty: None,
+        selected_song_idx: None
+    });
 
     loop {
 
@@ -69,6 +89,8 @@ async fn main() {
         else {
             break;
         }
+
+        egui_macroquad::draw();
 
         next_frame().await;
     }
