@@ -16,7 +16,9 @@
       "json_name": "forestlullaby.json",
       "difficulties": [
         "extreme",
-        "hard"
+        "expert",
+        "hard",
+        "medium"
       ]
     }
   ]
