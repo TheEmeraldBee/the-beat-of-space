@@ -615,16 +615,18 @@ impl Scene for NoteGameplayScene {
 
             // Draw the active Notes
             for (note_beat, note_type, _hold_length) in &active_notes {
-                let note_draw_pos =
-                    ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
-                draw_note(
-                    note_type.clone(),
-                    note_draw_pos,
-                    input_note_left,
-                    input_note_right,
-                    input_note_up,
-                    input_note_down,
-                );
+                if note_beat.clone() - beat < 15.0 {
+                    let note_draw_pos =
+                        ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
+                    draw_note(
+                        note_type.clone(),
+                        note_draw_pos,
+                        input_note_left,
+                        input_note_right,
+                        input_note_up,
+                        input_note_down,
+                    );
+                }
             }
 
             // Check Scale Up

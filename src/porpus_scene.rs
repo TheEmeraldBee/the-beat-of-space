@@ -335,16 +335,18 @@ impl Scene for PorpusScene {
 
             // Draw the active Notes
             for (note_beat, note_type, _hold_length) in &active_notes {
-                let note_draw_pos =
-                    ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
-                draw_note(
-                    note_type.clone(),
-                    note_draw_pos,
-                    input_note_left,
-                    input_note_right,
-                    input_note_up,
-                    input_note_down,
-                );
+                if note_beat.clone() - beat < 15.0 {
+                    let note_draw_pos =
+                        ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
+                    draw_note(
+                        note_type.clone(),
+                        note_draw_pos,
+                        input_note_left,
+                        input_note_right,
+                        input_note_up,
+                        input_note_down,
+                    );
+                }
             }
 
             // Scale Back Down
@@ -432,7 +434,6 @@ impl Scene for PorpusScene {
             ship_invincibility -= get_frame_time();
 
             let mut remove_attacks = vec![];
-            let mut warning_range_attacks = vec![];
             for (attack_beat, last_length, note_type) in &song_attacks {
                 let note_offset = match note_type.clone() as i32 {
                     3 => UP_ARROW_POS,
@@ -469,12 +470,6 @@ impl Scene for PorpusScene {
                             ..Default::default()
                         },
                     );
-
-                    warning_range_attacks.push((
-                        attack_beat.clone(),
-                        last_length.clone(),
-                        note_type.clone(),
-                    ));
                 }
 
                 if attack_beat.clone() >= beat {
@@ -508,117 +503,48 @@ impl Scene for PorpusScene {
                 }
             }
 
-            for (_, _, note_type) in &warning_range_attacks {
-                let note_offset = match note_type.clone() as i32 {
-                    3 => UP_ARROW_POS,
-                    4 => DOWN_ARROW_POS,
-                    1 => RIGHT_ARROW_POS,
-                    2 => LEFT_ARROW_POS,
-                    _ => {
-                        panic!("Error! Note type: '{note_type}' unknown")
-                    }
-                };
+            let mut safest_diff = most_dangerous_note(&song_attacks, wanted_ship_height);
+            let mut safest_position = wanted_ship_height;
 
-                if !(wanted_ship_height <= note_offset + 40.0
-                    && wanted_ship_height >= note_offset - 40.0
-                    && ship_invincibility <= 0.0)
-                {
-                    continue;
+            let start_height = wanted_ship_height;
+
+            for _ in 0..3 {
+                let (moved, location) = can_move(wanted_ship_height, true);
+
+                if is_laser(&song_attacks, beat, location) {
+                    break;
                 }
 
-                let mut safe = false;
-
-                let start_pos = wanted_ship_height;
-
-                // Check Up
-                for _ in 0..3 {
-                    let (moved, location) = can_move(wanted_ship_height, true);
-
-                    if is_laser(&song_attacks, beat, location) {
-                        break;
+                if moved {
+                    let most_dangerous = most_dangerous_note(&song_attacks, location);
+                    wanted_ship_height = location;
+                    if safest_diff < most_dangerous {
+                        safest_diff = most_dangerous;
+                        safest_position = wanted_ship_height;
                     }
-
-                    if moved {
-                        wanted_ship_height = location;
-                        let (warning, _) = is_warning(&song_attacks, beat, location);
-                        if !warning {
-                            safe = true;
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-
-                // Check Down
-                if !safe {
-                    wanted_ship_height = start_pos;
-                    for _ in 0..3 {
-                        let (moved, location) = can_move(wanted_ship_height, false);
-
-                        if is_laser(&song_attacks, beat, location) {
-                            break;
-                        }
-
-                        if moved {
-                            wanted_ship_height = location;
-                            let (warning, _) = is_warning(&song_attacks, beat, location);
-                            if !warning {
-                                safe = true;
-                                break;
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                if !safe {
-                    wanted_ship_height = start_pos;
-                    let mut safest_diff = is_warning(&song_attacks, beat, wanted_ship_height).1;
-                    let mut safest_position = wanted_ship_height;
-
-                    let start_height = wanted_ship_height;
-
-                    for _ in 0..3 {
-                        let (moved, location) = can_move(wanted_ship_height, true);
-
-                        if is_laser(&song_attacks, beat, location) {
-                            break;
-                        }
-
-                        if moved {
-                            let (_, diff) = is_warning(&song_attacks, beat, location);
-                            wanted_ship_height = location;
-                            if safest_diff < diff {
-                                safest_position = location;
-                                safest_diff = diff;
-                            }
-                        }
-                    }
-
-                    wanted_ship_height = start_height;
-
-                    for _ in 0..3 {
-                        let (moved, location) = can_move(wanted_ship_height, false);
-
-                        if is_laser(&song_attacks, beat, location) {
-                            break;
-                        }
-
-                        if moved {
-                            let (_, diff) = is_warning(&song_attacks, beat, location);
-                            wanted_ship_height = location;
-                            if safest_diff < diff {
-                                safest_position = location;
-                                safest_diff = diff;
-                            }
-                        }
-                    }
-
-                    wanted_ship_height = safest_position;
                 }
             }
+
+            wanted_ship_height = start_height;
+
+            for _ in 0..3 {
+                let (moved, location) = can_move(wanted_ship_height, false);
+
+                if is_laser(&song_attacks, beat, location) {
+                    break;
+                }
+
+                if moved {
+                    let most_dangerous = most_dangerous_note(&song_attacks, location);
+                    wanted_ship_height = location;
+                    if safest_diff < most_dangerous {
+                        safest_diff = most_dangerous;
+                        safest_position = wanted_ship_height;
+                    }
+                }
+            }
+
+            wanted_ship_height = safest_position;
 
             for remove_attack in &remove_attacks {
                 song_attacks.retain(|x| x != remove_attack);
@@ -801,6 +727,29 @@ pub fn can_move(current_loc: f32, up: bool) -> (bool, f32) {
             (false, 0.0)
         }
     };
+}
+
+pub fn most_dangerous_note(song_attacks: &Vec<(f32, f32, f32)>, check_type: f32) -> f32 {
+    let mut most_dangerous = 1000000.0;
+    for (beat, _, note_type) in song_attacks {
+        let offset = match note_type.clone() as i32 {
+            3 => UP_ARROW_POS,
+            4 => DOWN_ARROW_POS,
+            1 => RIGHT_ARROW_POS,
+            2 => LEFT_ARROW_POS,
+            _ => {
+                panic!("Error! Note type: '{note_type}' unknown")
+            }
+        };
+
+        if offset == check_type {
+            if beat.clone() < most_dangerous || most_dangerous == 1000000.0 {
+                most_dangerous = beat.clone();
+            }
+        }
+    }
+
+    most_dangerous
 }
 
 pub fn is_warning(song_attacks: &Vec<(f32, f32, f32)>, beat: f32, check_type: f32) -> (bool, f32) {
