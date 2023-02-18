@@ -214,7 +214,7 @@ impl Scene for NoteGameplayScene {
                     }
                 };
 
-                if *note_type < beat - 1.0 {
+                if *note_beat < beat - 1.0 {
                     hit_notes.push((*note_beat, *note_type, *hold_length));
                     score_texts.push(ScoreText {
                         timer: TEXT_LAST_TIME,
