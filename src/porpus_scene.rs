@@ -183,7 +183,7 @@ impl Scene for PorpusScene {
             let mut hit_notes = vec![];
 
             for (note_beat, note_type, hold_length) in &active_notes {
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match *note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -193,22 +193,18 @@ impl Scene for PorpusScene {
                     }
                 };
 
-                if note_beat.clone() < beat - NOTE_CORRECT_RANGE
-                    || note_beat.clone() > beat + NOTE_CORRECT_RANGE
+                if *note_beat < beat - NOTE_CORRECT_RANGE
+                    || *note_beat > beat + NOTE_CORRECT_RANGE
                 {
                     continue;
                 }
 
                 let diff = note_beat - beat;
                 if diff < PERFECT_HIT_RANGE / 1.5 {
-                    hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    hit_notes.push((*note_beat, *note_type, *hold_length));
 
-                    if hold_length.clone() != 0.0 {
-                        active_holds.push((
-                            note_beat.clone(),
-                            note_type.clone(),
-                            hold_length.clone(),
-                        ));
+                    if *hold_length != 0.0 {
+                        active_holds.push((*note_beat, *note_type, *hold_length));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
                         score += (PERFECT_HIT_SCORE as f32 * combo_multiplier).round() as i32;
@@ -221,7 +217,7 @@ impl Scene for PorpusScene {
                         perfect_notes += 1;
                     }
 
-                    match note_type.clone() as i32 {
+                    match *note_type as i32 {
                         3 => up_scale = ON_NOTE_PRESS_SCALE_FACTOR,
                         4 => down_scale = ON_NOTE_PRESS_SCALE_FACTOR,
                         2 => left_scale = ON_NOTE_PRESS_SCALE_FACTOR,
@@ -262,7 +258,7 @@ impl Scene for PorpusScene {
             // Check For Hold notes failed or completed
             let mut remove_holds = vec![];
             for (note_beat, note_type, hold_length) in &active_holds {
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match *note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -276,7 +272,7 @@ impl Scene for PorpusScene {
                 if percent_done >= 1.0 {
                     score += ((HOLD_SCORE_PER_BEAT as f32 / hold_length) * combo_multiplier).round()
                         as i32;
-                    remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    remove_holds.push((*note_beat, *note_type, *hold_length));
                     combo_multiplier *= 1.08;
                     score_texts.push(ScoreText {
                         timer: TEXT_LAST_TIME,
@@ -301,16 +297,10 @@ impl Scene for PorpusScene {
                 let mut hold_width = hold_length * pixels_per_beat;
                 let hold_draw_pos = note_draw_pos + hold_width;
 
-                let is_active = active_holds.contains(&(
-                    note_beat.clone(),
-                    note_type.clone(),
-                    hold_length.clone(),
-                ));
+                let is_active = active_holds.contains(&(*note_beat, *note_type, *hold_length));
 
-                if hold_draw_pos <= 15.0 && is_active {
-                    remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()))
-                } else if hold_draw_pos <= -15.0 && !is_active {
-                    remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()))
+                if (hold_draw_pos <= 15.0 && is_active) || (hold_draw_pos <= -15.0 && !is_active) {
+                    remove_holds.push((*note_beat, *note_type, *hold_length))
                 }
 
                 if is_active && hold_draw_pos - hold_width < 15.0 {
@@ -318,7 +308,7 @@ impl Scene for PorpusScene {
                 }
 
                 draw_hold(
-                    note_type.clone(),
+                    *note_type,
                     hold_draw_pos,
                     hold_width,
                     hold_note,
@@ -335,11 +325,11 @@ impl Scene for PorpusScene {
 
             // Draw the active Notes
             for (note_beat, note_type, _hold_length) in &active_notes {
-                if note_beat.clone() - beat < 15.0 {
+                if *note_beat - beat < 15.0 {
                     let note_draw_pos =
                         ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
                     draw_note(
-                        note_type.clone(),
+                        *note_type,
                         note_draw_pos,
                         input_note_left,
                         input_note_right,
@@ -435,7 +425,7 @@ impl Scene for PorpusScene {
 
             let mut remove_attacks = vec![];
             for (attack_beat, last_length, note_type) in &song_attacks {
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match *note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -445,17 +435,17 @@ impl Scene for PorpusScene {
                     }
                 };
 
-                if attack_beat.clone() + last_length.clone() <= beat {
+                if *attack_beat + *last_length <= beat {
                     remove_attacks.push((
-                        attack_beat.clone(),
-                        last_length.clone(),
-                        note_type.clone(),
+                        *attack_beat,
+                        *last_length,
+                        *note_type,
                     ));
                     continue;
                 }
 
-                if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
-                    let difference = 5.0 - (attack_beat.clone() - beat);
+                if beat >= *attack_beat - 5.0 && beat <= *attack_beat {
+                    let difference = 5.0 - (*attack_beat - beat);
 
                     draw_texture_ex(
                         laser,
@@ -472,7 +462,7 @@ impl Scene for PorpusScene {
                     );
                 }
 
-                if attack_beat.clone() >= beat {
+                if *attack_beat >= beat {
                     continue;
                 }
 
@@ -575,7 +565,7 @@ impl Scene for PorpusScene {
             );
 
             draw_text_justified(
-                format!("{}", song.credits).as_str(),
+                song.credits.as_str(),
                 vec2(self.window_context.active_screen_size.x - 5.0, self.window_context.active_screen_size.y - 5.0),
                 TextParams {
                     font,
@@ -706,7 +696,7 @@ impl Scene for PorpusScene {
 }
 
 pub fn can_move(current_loc: f32, up: bool) -> (bool, f32) {
-    return if up {
+    if up {
         if current_loc == RIGHT_ARROW_POS {
             (true, UP_ARROW_POS)
         } else if current_loc == UP_ARROW_POS {
@@ -716,23 +706,21 @@ pub fn can_move(current_loc: f32, up: bool) -> (bool, f32) {
         } else {
             (false, 0.0)
         }
+    } else if current_loc == RIGHT_ARROW_POS {
+        (true, DOWN_ARROW_POS)
+    } else if current_loc == LEFT_ARROW_POS {
+        (true, UP_ARROW_POS)
+    } else if current_loc == UP_ARROW_POS {
+        (true, RIGHT_ARROW_POS)
     } else {
-        if current_loc == RIGHT_ARROW_POS {
-            (true, DOWN_ARROW_POS)
-        } else if current_loc == LEFT_ARROW_POS {
-            (true, UP_ARROW_POS)
-        } else if current_loc == UP_ARROW_POS {
-            (true, RIGHT_ARROW_POS)
-        } else {
-            (false, 0.0)
-        }
-    };
+        (false, 0.0)
+    }
 }
 
 pub fn most_dangerous_note(song_attacks: &Vec<(f32, f32, f32)>, check_type: f32) -> f32 {
     let mut most_dangerous = 1000000.0;
     for (beat, _, note_type) in song_attacks {
-        let offset = match note_type.clone() as i32 {
+        let offset = match *note_type as i32 {
             3 => UP_ARROW_POS,
             4 => DOWN_ARROW_POS,
             1 => RIGHT_ARROW_POS,
@@ -742,42 +730,17 @@ pub fn most_dangerous_note(song_attacks: &Vec<(f32, f32, f32)>, check_type: f32)
             }
         };
 
-        if offset == check_type {
-            if beat.clone() < most_dangerous || most_dangerous == 1000000.0 {
-                most_dangerous = beat.clone();
-            }
+        if offset == check_type && (*beat < most_dangerous || most_dangerous == 1000000.0) {
+            most_dangerous = *beat;
         }
     }
 
     most_dangerous
 }
 
-pub fn is_warning(song_attacks: &Vec<(f32, f32, f32)>, beat: f32, check_type: f32) -> (bool, f32) {
-    for (other_beat, _, other_type) in song_attacks {
-        let other_offset = match other_type.clone() as i32 {
-            3 => UP_ARROW_POS,
-            4 => DOWN_ARROW_POS,
-            1 => RIGHT_ARROW_POS,
-            2 => LEFT_ARROW_POS,
-            _ => {
-                panic!("Error! Note type: '{other_type}' unknown")
-            }
-        };
-
-        if other_beat.clone() - 5.0 <= beat
-            && other_offset == check_type
-            && other_beat.clone() >= beat
-        {
-            return (true, beat - other_beat.clone());
-        }
-    }
-
-    (false, 0.0)
-}
-
 pub fn is_laser(song_attacks: &Vec<(f32, f32, f32)>, beat: f32, check_type: f32) -> bool {
     for (other_beat, _, other_type) in song_attacks {
-        let other_offset = match other_type.clone() as i32 {
+        let other_offset = match *other_type as i32 {
             3 => UP_ARROW_POS,
             4 => DOWN_ARROW_POS,
             1 => RIGHT_ARROW_POS,
@@ -787,7 +750,7 @@ pub fn is_laser(song_attacks: &Vec<(f32, f32, f32)>, beat: f32, check_type: f32)
             }
         };
 
-        if other_beat.clone() <= beat && other_offset == check_type {
+        if *other_beat <= beat && other_offset == check_type {
             return true;
         }
     }

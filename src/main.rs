@@ -48,22 +48,19 @@ async fn main() {
 
     for i in 0..args.len() {
         let arg = args[i].clone();
-        match arg.as_str() {
-            "midi" => {
-                let bpm = args[i + 1].clone().parse::<f32>().unwrap();
-                let midi_path = args[i + 2].clone();
-                let song_path =  args[i + 3].clone();
+        if arg.as_str() == "midi" {
+            let bpm = args[i + 1].clone().parse::<f32>().unwrap();
+            let midi_path = args[i + 2].clone();
+            let song_path =  args[i + 3].clone();
 
-                let midi_convert = midi_converter::MidiConverter {
-                    bpm,
-                    midi_path,
-                    song_path
-                };
-                midi_convert.load_midi().await;
+            let midi_convert = midi_converter::MidiConverter {
+                bpm,
+                midi_path,
+                song_path
+            };
+            midi_convert.load_midi().await;
 
-                return;
-            }
-            _ => {}
+            return;
         }
     }
 

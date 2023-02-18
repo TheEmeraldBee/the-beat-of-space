@@ -18,7 +18,7 @@ impl MidiConverter {
         let bpm = self.bpm;
 
         let midi_data = load_file(&self.midi_path).await.unwrap();
-        let smf = Smf::parse(&*midi_data).unwrap();
+        let smf = Smf::parse(&midi_data).unwrap();
         let ppq =  match smf.header.timing {
             Timing::Metrical(i) => {i.as_int() as f32}
             Timing::Timecode(_, _) => { panic!() }
@@ -46,16 +46,13 @@ impl MidiConverter {
                 tick_counter += note.delta.as_int();
                 match note.kind {
                     TrackEventKind::Midi {channel: _chan, message} => {
-                        match message {
-                            MidiMessage::NoteOn { .. } => {
-                                let physical_second = (millis_per_tick * tick_counter as f32) / 1000.0;
-                                let beat = physical_second * (bpm / 60.0);
-                                if beat - last_beat > min_spacing {
-                                    last_beat = beat;
-                                    song.notes.push((beat, ((rand() % 4) + 1) as f32, 0.0));
-                                }
+                        if let MidiMessage::NoteOn {..} = message {
+                            let physical_second = (millis_per_tick * tick_counter as f32) / 1000.0;
+                            let beat = physical_second * (bpm / 60.0);
+                            if beat - last_beat > min_spacing {
+                                last_beat = beat;
+                                song.notes.push((beat, ((rand() % 4) + 1) as f32, 0.0));
                             }
-                            _ => {}
                         }
                     }
                     TrackEventKind::SysEx(_) => {}
@@ -65,7 +62,7 @@ impl MidiConverter {
             }
         }
 
-        let mut file = File::create(save_path.clone()).unwrap();
+        let mut file = File::create(save_path).unwrap();
         let cloned_song = song.clone();
         file.write_all(serde_json::to_string_pretty(&cloned_song).unwrap().as_ref()).unwrap();
     }

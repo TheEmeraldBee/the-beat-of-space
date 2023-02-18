@@ -95,7 +95,7 @@ impl UIElement {
 
     /// Returns if mouse if hovering it
     pub fn is_hovering(&self) -> bool {
-        return self.mouse_pos.x < self.rect.x + self.rect.w && self.mouse_pos.x > self.rect.x &&
+        self.mouse_pos.x < self.rect.x + self.rect.w && self.mouse_pos.x > self.rect.x &&
             self.mouse_pos.y < self.rect.y + self.rect.h && self.mouse_pos.y > self.rect.y
     }
 }
@@ -109,15 +109,15 @@ pub fn element_template(rect: Rect, template: UITemplate, mouse_pos: Vec2) -> UI
         mouse_pos: vec2(0.0, 0.0)
     };
 
-    ui_element.update(mouse_pos).clone()
+    *ui_element.update(mouse_pos)
 }
 
 pub fn element(mut ui_element: UIElement, mouse_pos: Vec2) -> UIElement {
-    ui_element.update(mouse_pos).clone()
+    *ui_element.update(mouse_pos)
 }
 
 pub fn element_text(ui_element: UIElement, mouse_pos: Vec2, text: &str, params: TextParams) -> UIElement {
-    let return_value = element(ui_element.clone(), mouse_pos);
+    let return_value = element(ui_element, mouse_pos);
 
     let center_of_rect = get_center_of_rect(ui_element.rect);
 
@@ -129,7 +129,7 @@ pub fn element_text(ui_element: UIElement, mouse_pos: Vec2, text: &str, params: 
 pub fn element_text_template(rect: Rect, template: UITemplate, mouse_pos: Vec2, text: &str, params: TextParams) -> UIElement {
     let return_value = element_template(rect, template, mouse_pos);
 
-    let center_of_rect = get_center_of_rect(rect.clone());
+    let center_of_rect = get_center_of_rect(rect);
 
     draw_text_justified(text, center_of_rect, params, vec2(0.5, 0.5));
 
@@ -185,28 +185,28 @@ impl Element {
 
                 // Top Left
                 draw_texture_ex(self.tex, rect.x, rect.y, color, DrawTextureParams {
-                    dest_size: Some(corner_size.clone()),
+                    dest_size: Some(corner_size),
                     source: Some(justify_rect(0.0, 0.0, corner_size.x, corner_size.y, vec2(0.0, 0.0))),
                     ..Default::default()
                 });
 
                 // Top Right
                 draw_texture_ex(self.tex, rect.x + rect.w - corner_size.x, rect.y, color, DrawTextureParams {
-                    dest_size: Some(corner_size.clone()),
+                    dest_size: Some(corner_size),
                     source: Some(justify_rect(self.tex.width(), 0.0, corner_size.x, corner_size.y, vec2(1.0, 0.0))),
                     ..Default::default()
                 });
 
                 // Bottom Left
                 draw_texture_ex(self.tex, rect.x, rect.y + rect.h - corner_size.y, color, DrawTextureParams {
-                    dest_size: Some(corner_size.clone()),
+                    dest_size: Some(corner_size),
                     source: Some(justify_rect(0.0, self.tex.height(), corner_size.x, corner_size.y, vec2(0.0, 1.0))),
                     ..Default::default()
                 });
 
                 // Bottom Right
                 draw_texture_ex(self.tex, rect.x + rect.w - corner_size.y, rect.y + rect.h - corner_size.y, color, DrawTextureParams {
-                    dest_size: Some(corner_size.clone()),
+                    dest_size: Some(corner_size),
                     source: Some(justify_rect(self.tex.width(), self.tex.height(), corner_size.x, corner_size.y, vec2(1.0, 1.0))),
                     ..Default::default()
                 });

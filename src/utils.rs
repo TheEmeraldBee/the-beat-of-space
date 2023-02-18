@@ -57,6 +57,6 @@ pub struct Config {
 }
 
 pub fn is_hovering_rect(rect: Rect, mouse_pos: Vec2) -> bool {
-    return mouse_pos.x < rect.x + rect.w && mouse_pos.x > rect.x &&
+    mouse_pos.x < rect.x + rect.w && mouse_pos.x > rect.x &&
         mouse_pos.y < rect.y + rect.h && mouse_pos.y > rect.y
 }

@@ -204,7 +204,7 @@ impl Scene for NoteGameplayScene {
             let mut hit_notes = vec![];
 
             for (note_beat, note_type, hold_length) in &active_notes {
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match *note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -214,8 +214,8 @@ impl Scene for NoteGameplayScene {
                     }
                 };
 
-                if note_beat.clone() < beat - 1.0 {
-                    hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                if *note_type < beat - 1.0 {
+                    hit_notes.push((*note_beat, *note_type, *hold_length));
                     score_texts.push(ScoreText {
                         timer: TEXT_LAST_TIME,
                         score_type: ScoreType::Miss,
@@ -228,22 +228,22 @@ impl Scene for NoteGameplayScene {
                     continue;
                 }
 
-                if note_beat.clone() < beat - NOTE_CORRECT_RANGE
-                    || note_beat.clone() > beat + NOTE_CORRECT_RANGE
+                if *note_beat < beat - NOTE_CORRECT_RANGE
+                    || *note_beat > beat + NOTE_CORRECT_RANGE
                 {
                     continue;
                 }
 
                 let diff = note_beat - beat;
                 if is_key_pressed(KeyCode::Up) && !correct_up && note_type.floor() == 3.0 {
-                    hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    hit_notes.push((*note_beat, *note_type, *hold_length));
                     correct_up = true;
 
-                    if hold_length.clone() != 0.0 {
+                    if *hold_length != 0.0 {
                         active_holds.push((
-                            note_beat.clone(),
-                            note_type.clone(),
-                            hold_length.clone(),
+                            *note_beat,
+                            *note_type,
+                            *hold_length,
                         ));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
@@ -278,14 +278,14 @@ impl Scene for NoteGameplayScene {
                     }
                 }
                 if is_key_pressed(KeyCode::Down) && !correct_down && note_type.floor() == 4.0 {
-                    hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    hit_notes.push((*note_beat, *note_type, *hold_length));
                     correct_down = true;
 
-                    if hold_length.clone() != 0.0 {
+                    if *hold_length != 0.0 {
                         active_holds.push((
-                            note_beat.clone(),
-                            note_type.clone(),
-                            hold_length.clone(),
+                            *note_beat,
+                            *note_type,
+                            *hold_length,
                         ));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
@@ -320,14 +320,14 @@ impl Scene for NoteGameplayScene {
                     }
                 }
                 if is_key_pressed(KeyCode::Right) && !correct_right && note_type.floor() == 1.0 {
-                    hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    hit_notes.push((*note_beat, *note_type, *hold_length));
                     correct_right = true;
 
-                    if hold_length.clone() != 0.0 {
+                    if *hold_length != 0.0 {
                         active_holds.push((
-                            note_beat.clone(),
-                            note_type.clone(),
-                            hold_length.clone(),
+                            *note_beat,
+                            *note_type,
+                            *hold_length,
                         ));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
@@ -362,15 +362,11 @@ impl Scene for NoteGameplayScene {
                     }
                 }
                 if is_key_pressed(KeyCode::Left) && !correct_left && note_type.floor() == 2.0 {
-                    hit_notes.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    hit_notes.push((*note_beat, *note_type, *hold_length));
                     correct_left = true;
 
-                    if hold_length.clone() != 0.0 {
-                        active_holds.push((
-                            note_beat.clone(),
-                            note_type.clone(),
-                            hold_length.clone(),
-                        ));
+                    if *hold_length != 0.0 {
+                        active_holds.push((*note_beat, *note_type, *hold_length));
                     } else {
                         health += CORRECT_HEALTH_GAIN;
 
@@ -456,8 +452,6 @@ impl Scene for NoteGameplayScene {
             if is_key_pressed(KeyCode::W) {
                 if wanted_ship_height == RIGHT_ARROW_POS {
                     wanted_ship_height = UP_ARROW_POS;
-                } else if wanted_ship_height == LEFT_ARROW_POS {
-                    wanted_ship_height = LEFT_ARROW_POS;
                 } else if wanted_ship_height == UP_ARROW_POS {
                     wanted_ship_height = LEFT_ARROW_POS;
                 } else if wanted_ship_height == DOWN_ARROW_POS {
@@ -471,8 +465,6 @@ impl Scene for NoteGameplayScene {
                     wanted_ship_height = UP_ARROW_POS;
                 } else if wanted_ship_height == UP_ARROW_POS {
                     wanted_ship_height = RIGHT_ARROW_POS;
-                } else if wanted_ship_height == DOWN_ARROW_POS {
-                    wanted_ship_height = DOWN_ARROW_POS;
                 }
             }
 
@@ -502,7 +494,7 @@ impl Scene for NoteGameplayScene {
             // Check For Hold notes failed or completed
             let mut remove_holds = vec![];
             for (note_beat, note_type, hold_length) in &active_holds {
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match *note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -537,7 +529,7 @@ impl Scene for NoteGameplayScene {
                 if stay_active && percent_done >= 1.0 {
                     score += ((HOLD_SCORE_PER_BEAT as f32 / hold_length) * combo_multiplier).round()
                         as i32;
-                    remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    remove_holds.push((*note_beat, *note_type, *hold_length));
                     combo_multiplier *= 1.08;
                     score_texts.push(ScoreText {
                         timer: TEXT_LAST_TIME,
@@ -550,7 +542,7 @@ impl Scene for NoteGameplayScene {
                     score += (((HOLD_SCORE_PER_BEAT as f32 / hold_length) * percent_done)
                         * combo_multiplier)
                         .round() as i32;
-                    remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()));
+                    remove_holds.push((*note_beat, *note_type, *hold_length));
                     combo_multiplier *= 0.98;
                     score_texts.push(ScoreText {
                         timer: TEXT_LAST_TIME,
@@ -560,8 +552,8 @@ impl Scene for NoteGameplayScene {
 
                     drawn_holds.push((
                         beat,
-                        note_type.clone(),
-                        (1.0 - percent_done) * hold_length.clone(),
+                        *note_type,
+                        (1.0 - percent_done) * *hold_length,
                     ));
                 }
             }
@@ -582,15 +574,13 @@ impl Scene for NoteGameplayScene {
                 let hold_draw_pos = note_draw_pos + hold_width;
 
                 let is_active = active_holds.contains(&(
-                    note_beat.clone(),
-                    note_type.clone(),
-                    hold_length.clone(),
+                    *note_beat,
+                    *note_type,
+                    *hold_length,
                 ));
 
-                if hold_draw_pos <= 15.0 && is_active {
-                    remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()))
-                } else if hold_draw_pos <= -15.0 && !is_active {
-                    remove_holds.push((note_beat.clone(), note_type.clone(), hold_length.clone()))
+                if (hold_draw_pos <= 15.0 && is_active) || (hold_draw_pos <= -15.0 && !is_active) {
+                    remove_holds.push((*note_beat, *note_type, *hold_length))
                 }
 
                 if is_active && hold_draw_pos - hold_width < 15.0 {
@@ -598,7 +588,7 @@ impl Scene for NoteGameplayScene {
                 }
 
                 draw_hold(
-                    note_type.clone(),
+                    *note_type,
                     hold_draw_pos,
                     hold_width,
                     hold_note,
@@ -615,11 +605,11 @@ impl Scene for NoteGameplayScene {
 
             // Draw the active Notes
             for (note_beat, note_type, _hold_length) in &active_notes {
-                if note_beat.clone() - beat < 15.0 {
+                if *note_beat - beat < 15.0 {
                     let note_draw_pos =
                         ((note_beat - beat) * pixels_per_beat) + (ARROW_OFFSET - NOTE_SIZE / 2.0);
                     draw_note(
-                        note_type.clone(),
+                        *note_type,
                         note_draw_pos,
                         input_note_left,
                         input_note_right,
@@ -729,7 +719,7 @@ impl Scene for NoteGameplayScene {
 
             let mut remove_attacks = vec![];
             for (attack_beat, last_length, note_type) in &song_attacks {
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match *note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -739,17 +729,17 @@ impl Scene for NoteGameplayScene {
                     }
                 };
 
-                if attack_beat.clone() + last_length.clone() <= beat {
+                if *attack_beat + *last_length <= beat {
                     remove_attacks.push((
-                        attack_beat.clone(),
-                        last_length.clone(),
-                        note_type.clone(),
+                        *attack_beat,
+                        *last_length,
+                        *note_type,
                     ));
                     continue;
                 }
 
-                if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
-                    let difference = 5.0 - (attack_beat.clone() - beat);
+                if beat >= *attack_beat - 5.0 && beat <= *attack_beat {
+                    let difference = 5.0 - (*attack_beat - beat);
 
                     draw_texture_ex(
                         laser,
@@ -766,7 +756,7 @@ impl Scene for NoteGameplayScene {
                     );
                 }
 
-                if attack_beat.clone() >= beat {
+                if *attack_beat >= beat {
                     continue;
                 }
 
@@ -826,7 +816,7 @@ impl Scene for NoteGameplayScene {
             );
 
             draw_text_justified(
-                format!("{}", song.credits).as_str(),
+                song.credits.as_str(),
                 vec2(self.window_context.active_screen_size.x - 5.0, self.window_context.active_screen_size.y - 5.0),
                 TextParams {
                     font,
@@ -836,6 +826,19 @@ impl Scene for NoteGameplayScene {
                     ..Default::default()
                 },
                 vec2(1.0, 0.0),
+            );
+
+            draw_text_justified(
+                format!("{}", get_fps()).as_str(),
+                vec2(self.window_context.active_screen_size.x - 5.0, 5.0),
+                TextParams {
+                    font,
+                    font_size: 40,
+                    font_scale: 0.25,
+                    color: WHITE,
+                    ..Default::default()
+                },
+                vec2(1.0, 1.0),
             );
 
             // Clamp the health value to a max

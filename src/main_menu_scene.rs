@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 use async_trait::async_trait;
@@ -45,15 +46,15 @@ pub struct SongData {
     pub difficulties: Vec<String>
 }
 
-impl Difficulty {
-    pub fn to_string(&self) -> String {
-        match self {
+impl Display for Difficulty {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
             Difficulty::Easy => { "easy".to_string() }
             Difficulty::Medium => { "medium".to_string() }
             Difficulty::Hard => { "hard".to_string() }
             Difficulty::Expert => { "expert".to_string() }
             Difficulty::Extreme => { "extreme".to_string() }
-        }
+        })
     }
 }
 
@@ -131,12 +132,9 @@ impl Scene for MainMenuScene {
         };
 
         let song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/song_data.json").await.unwrap()).unwrap();
-        let mut chosen_song_idx = match self.selected_song_idx {
-            Some(idx) => idx,
-            None => 0usize
-        };
+        let mut chosen_song_idx = self.selected_song_idx.unwrap_or(0);
 
-        let mut song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+        let mut song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
 
         let mut config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
 
@@ -159,6 +157,9 @@ impl Scene for MainMenuScene {
 
             match state {
                 MenuState::MainMenu => {
+                    if is_key_pressed(KeyCode::Escape) {
+                        return None;
+                    }
                     let mut play_rect = justify_rect(50.0, 50.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.0, 0.5));
                     if hover_rect(play_rect, mouse_pos) {
                         play_button_pos += 20.0 * (play_button_pos + 1.0) * get_frame_time();
@@ -177,7 +178,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ).clicked() {
+                    ).clicked() || is_key_pressed(KeyCode::Space) {
                         state = MenuState::PlayMenu;
                     }
 
@@ -257,7 +258,7 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Medium Button
@@ -285,7 +286,7 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Hard Button
@@ -313,7 +314,7 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Expert Button
@@ -341,7 +342,7 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     // Extreme Button
@@ -369,13 +370,38 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                     }
 
                     let song_data_left = self.window_context.active_screen_size.x - 50.0 - self.window_context.active_screen_size.x * 0.56;
                     let song_data_center = self.window_context.active_screen_size.x - 50.0 - (self.window_context.active_screen_size.x * 0.56) / 2.0;
 
                     if !changing_song {
+                        if is_key_pressed(KeyCode::Down) {
+                            match active_difficulty {
+                                Difficulty::Easy => {active_difficulty = Difficulty::Medium}
+                                Difficulty::Medium => {active_difficulty = Difficulty::Hard}
+                                Difficulty::Hard => {active_difficulty = Difficulty::Expert}
+                                Difficulty::Expert => {active_difficulty = Difficulty::Extreme}
+                                Difficulty::Extreme => {  }
+                            }
+                        }
+                        if is_key_pressed(KeyCode::Up) {
+                            match active_difficulty {
+                                Difficulty::Easy => {  }
+                                Difficulty::Medium => {active_difficulty = Difficulty::Easy}
+                                Difficulty::Hard => {active_difficulty = Difficulty::Medium}
+                                Difficulty::Expert => {active_difficulty = Difficulty::Hard}
+                                Difficulty::Extreme => {active_difficulty = Difficulty::Expert}
+                            }
+                        }
+
+                        if is_key_pressed(KeyCode::S) {
+                            changing_song = true;
+                        }
+                        if is_key_pressed(KeyCode::Escape) {
+                            state = MenuState::MainMenu;
+                        }
                         // Song Data Panel
                         nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 50.0, 50.0, self.window_context.active_screen_size.x * 0.56, 240.0, vec2(1.0, 0.0)), WHITE);
 
@@ -426,6 +452,23 @@ impl Scene for MainMenuScene {
                         }
 
                     } else {
+                        if is_key_pressed(KeyCode::S) {
+                            changing_song = false;
+                        }
+
+                        if is_key_pressed(KeyCode::Down) {
+                            chosen_song_idx += 1;
+                            if chosen_song_idx >= song_database.songs.len() {
+                                chosen_song_idx = song_database.songs.len() - 1
+                            }
+                        }
+                        if is_key_pressed(KeyCode::Up) && chosen_song_idx > 0 {
+                            chosen_song_idx -= 1;
+                        }
+
+                        if is_key_pressed(KeyCode::Escape) {
+                            changing_song = false;
+                        }
                         // Song Choice Panel
                         nine_slice_frame.draw(justify_rect(song_data_center - 100.0, 50.0, self.window_context.active_screen_size.x * 0.28, 240.0, vec2(0.5, 0.0)), WHITE);
 
@@ -452,7 +495,7 @@ impl Scene for MainMenuScene {
                                 ).clicked() {
                                     chosen_song_idx = song_idx;
                                     changing_song = false;
-                                    song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                                    song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
                                 }
 
                                 total_songs += 1;
@@ -472,7 +515,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ).clicked() {
+                    ).clicked() || is_key_pressed(KeyCode::Space) {
                         state = MenuState::Loading;
                         load_scene_timer.start();
                     }
@@ -489,7 +532,7 @@ impl Scene for MainMenuScene {
                             font_scale: 0.25,
                             ..Default::default()
                         }
-                    ).clicked() {
+                    ).clicked() || is_key_pressed(KeyCode::W) {
                         state = MenuState::Loading;
                         load_watch_timer.start();
                     }
@@ -515,6 +558,10 @@ impl Scene for MainMenuScene {
                     }
                 }
                 MenuState::Settings => {
+                    if is_key_pressed(KeyCode::Escape) {
+                        state = MenuState::MainMenu;
+                    }
+
                     if element_text_template(
                         justify_rect(50.0, self.window_context.active_screen_size.y - 15.0, 96.0 * 1.35, 26.0 * 1.1, vec2(0.0, 1.0)),
                         button_template, mouse_pos, "Back",
@@ -602,12 +649,11 @@ impl Scene for MainMenuScene {
                     }
                 }
                 MenuState::Loading => {
-                    let dots;
-                    if load_scene_timer.running {
-                        dots = (load_scene_timer.percent_done() * 5.0).round() as i32 % 4;
+                    let dots = if load_scene_timer.running {
+                        (load_scene_timer.percent_done() * 5.0).round() as i32 % 4
                     } else {
-                        dots = (load_watch_timer.percent_done() * 5.0).round() as i32 % 4
-                    }
+                        (load_watch_timer.percent_done() * 5.0).round() as i32 % 4
+                    };
 
                     let mut text = "Loading".to_string();
 
@@ -638,25 +684,25 @@ impl Scene for MainMenuScene {
             if load_scene_timer.is_done() {
                 return Some(Box::new(NoteGameplayScene::new(
                     self.window_context.clone(),
-                    format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name).as_str(),
-                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx.clone())
+                    format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name).as_str(),
+                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx)
                 )));
             }
 
             if load_watch_timer.is_done() {
                 return Some(Box::new(PorpusScene::new(
                     self.window_context.clone(),
-                    format!("assets/songs/{}/{}", active_difficulty.to_string(), song_database.songs[chosen_song_idx].json_name).as_str(),
-                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx.clone())
+                    format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name).as_str(),
+                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx)
                 )));
+            }
+
+            if is_key_down(KeyCode::LeftShift) {
+                println!("SHIFT!");
             }
 
             if is_key_pressed(KeyCode::F12) {
                 return Some(Box::new(BeatmapEditorScene { window_context: self.window_context.clone(), song_path: Default::default() }));
-            }
-
-            if is_key_pressed(KeyCode::Escape) {
-                return None;
             }
 
             draw_window(&mut self.window_context);

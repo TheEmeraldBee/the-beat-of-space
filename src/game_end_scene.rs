@@ -85,7 +85,7 @@ impl Scene for GameEndScene {
                     font_scale: 0.25,
                     ..Default::default()
                 }
-            ).clicked() {
+            ).clicked() || is_key_pressed(KeyCode::Space) {
                 return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &self.file_path.clone(), self.return_to.clone())));
             }
 

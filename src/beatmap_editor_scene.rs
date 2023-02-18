@@ -175,7 +175,7 @@ impl Scene for BeatmapEditorScene {
                                         selected_attack
                                     });
 
-                                    let note = song.notes[selected_note].clone();
+                                    let note = song.notes[selected_note];
                                     song.notes.push((note.0 + 0.125, note.1, note.2));
                                     selected_note = song.notes.len() - 1;
                                 }
@@ -251,12 +251,11 @@ impl Scene for BeatmapEditorScene {
                                 selected_attack
                             });
 
-                            let spawn_loc;
-                            if beat - beat.floor() <= 0.75 && beat - beat.floor() >= 0.25 {
-                                spawn_loc = beat.floor() + 0.5;
+                            let spawn_loc= if beat - beat.floor() <= 0.75 && beat - beat.floor() >= 0.25 {
+                                beat.floor() + 0.5
                             } else {
-                                spawn_loc = beat.round();
-                            }
+                                beat.round()
+                            };
 
                             song.attacks.push((spawn_loc, 4.0, 1.0));
                             selected_attack = song.attacks.len() - 1;
@@ -317,7 +316,7 @@ impl Scene for BeatmapEditorScene {
 
             for i in 0..song.attacks.len() {
                 let (attack_beat, last_length, note_type) = song.attacks[i];
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -325,27 +324,25 @@ impl Scene for BeatmapEditorScene {
                     _ => { panic!("Error! Note type: '{note_type}' unknown") }
                 };
 
-                if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
-                    if beat >= attack_beat.clone() - 5.0 && beat <= attack_beat.clone() {
-                        let difference = 5.0 - (attack_beat.clone() - beat);
+                if beat >= attack_beat - 5.0 && beat <= attack_beat {
+                    let difference = 5.0 - (attack_beat - beat);
 
-                        if i == selected_attack {
-                            draw_texture_ex(laser, 0.0, note_offset - 20.0,
-                                            Color::new(1.0, 1.0, 1.0, 1.0), DrawTextureParams {
-                                    dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0)),
-                                    ..Default::default()
-                                });
-                        } else {
-                            draw_texture_ex(laser, 0.0, note_offset - 20.0,
-                                            Color::new(1.0, 0.5, 0.6, 1.0), DrawTextureParams {
-                                    dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0)),
-                                    ..Default::default()
-                                });
-                        }
+                    if i == selected_attack {
+                        draw_texture_ex(laser, 0.0, note_offset - 20.0,
+                                        Color::new(1.0, 1.0, 1.0, 1.0), DrawTextureParams {
+                                dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0)),
+                                ..Default::default()
+                            });
+                    } else {
+                        draw_texture_ex(laser, 0.0, note_offset - 20.0,
+                                        Color::new(1.0, 0.5, 0.6, 1.0), DrawTextureParams {
+                                dest_size: Some(vec2(difference * difference * difference * 2.0, 40.0)),
+                                ..Default::default()
+                            });
                     }
                 }
 
-                if attack_beat.clone() >= beat || attack_beat.clone() + last_length.clone() <= beat {
+                if attack_beat >= beat || attack_beat + last_length <= beat {
                     continue;
                 }
 
@@ -374,7 +371,7 @@ impl Scene for BeatmapEditorScene {
             // Draw Every Note
             for i in 0..song.notes.len() {
                 let (note_beat, note_type, hold_length) = song.notes[i];
-                let note_offset = match note_type.clone() as i32 {
+                let note_offset = match note_type as i32 {
                     3 => UP_ARROW_POS,
                     4 => DOWN_ARROW_POS,
                     1 => RIGHT_ARROW_POS,
@@ -388,11 +385,11 @@ impl Scene for BeatmapEditorScene {
                 let hold_draw_pos = note_draw_pos + hold_width;
 
                 if i == selected_note {
-                    draw_hold_white(note_type.clone(), hold_draw_pos, hold_width, hold_note, 1.0);
-                    draw_note_white(note_type.clone(), note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
+                    draw_hold_white(note_type, hold_draw_pos, hold_width, hold_note, 1.0);
+                    draw_note_white(note_type, note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
                 } else {
-                    draw_hold(note_type.clone(), hold_draw_pos, hold_width, hold_note, 1.0);
-                    draw_note(note_type.clone(), note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
+                    draw_hold(note_type, hold_draw_pos, hold_width, hold_note, 1.0);
+                    draw_note(note_type, note_draw_pos, input_note_left, input_note_right, input_note_up, input_note_down);
                 }
 
 
@@ -516,7 +513,7 @@ impl Scene for BeatmapEditorScene {
                 };
             }
 
-            if is_key_pressed(KeyCode::Z) && !ignore_inputs && undo_edits.len() > 0 && is_key_down(KeyCode::LeftControl) {
+            if is_key_pressed(KeyCode::Z) && !ignore_inputs && !undo_edits.is_empty() && is_key_down(KeyCode::LeftControl) {
                 let undo = undo_edits.pop().unwrap();
 
                 song.notes = undo.notes;
