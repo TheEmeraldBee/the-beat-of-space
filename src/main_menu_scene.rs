@@ -16,7 +16,7 @@ use crate::note_gameplay_scene::song::Song;
 use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
 use crate::ui::*;
-use crate::utils::{Config, quick_load_texture, Timer};
+use crate::utils::{Config, key_code_to_u32, quick_load_texture, Timer, u32_to_key_code};
 
 pub enum MenuState {
     MainMenu,
@@ -148,12 +148,35 @@ impl Scene for MainMenuScene {
 
         let start_fullscreen = config.fullscreen;
 
+        let mut checking_input = 0;
+
+        let mut fps_display = false;
+
         loop {
             set_camera(&self.window_context.camera);
 
             draw_texture_ex(background, 0.0, 0.0, WHITE, Default::default());
 
             let mouse_pos = self.window_context.camera.screen_to_world(mouse_position().into());
+
+            if is_key_pressed(KeyCode::F3) {
+                fps_display = !fps_display;
+            }
+
+            if fps_display {
+                draw_text_justified(
+                    format!("{}", get_fps()).as_str(),
+                    vec2(self.window_context.active_screen_size.x - 5.0, 5.0),
+                    TextParams {
+                        font,
+                        font_size: 40,
+                        font_scale: 0.25,
+                        color: WHITE,
+                        ..Default::default()
+                    },
+                    vec2(1.0, 1.0),
+                );
+            }
 
             match state {
                 MenuState::MainMenu => {
@@ -560,6 +583,7 @@ impl Scene for MainMenuScene {
                 MenuState::Settings => {
                     if is_key_pressed(KeyCode::Escape) {
                         state = MenuState::MainMenu;
+                        checking_input = 0;
                     }
 
                     if element_text_template(
@@ -572,7 +596,8 @@ impl Scene for MainMenuScene {
                             ..Default::default()
                         }
                     ).clicked() {
-                        state = MenuState::MainMenu
+                        state = MenuState::MainMenu;
+                        checking_input = 0;
                     }
 
                     nine_slice_frame.draw(justify_rect(40.0, 50.0, 200.0, 40.0, vec2(0.0, 0.5)), WHITE);
@@ -647,6 +672,200 @@ impl Scene for MainMenuScene {
                             }, vec2(0.0, 1.0)
                         );
                     }
+
+                    nine_slice_frame.draw(
+                        justify_rect(45.0, 150.0,
+                                     192.0, 175.0,
+                                     vec2(0.0, 0.0)), WHITE);
+
+                    draw_text_justified("Left Arrow: ",
+                                        vec2(45.0 + 10.0, 175.0),
+                                        TextParams {
+                        font,
+                        font_size: 40,
+                        font_scale: 0.25,
+                        ..Default::default()
+                    },
+                                        vec2(0.0, 0.5));
+                    if element_text_template(
+                        justify_rect(227.0, 175.0, 70.0, 20.0, vec2(1.0, 0.5)),
+                        match checking_input {
+                            1 => faint_button_template,
+                            _ => button_template
+                        },
+                        mouse_pos,
+                        &format!("{:?}", u32_to_key_code(config.controls.left_arrow)),
+                        TextParams {
+                            font,
+                            font_size: 35,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ).clicked() {
+                        checking_input = 1
+                    }
+
+                    draw_text_justified("Up Arrow: ",
+                                        vec2(45.0 + 10.0, 200.0),
+                                        TextParams {
+                                            font,
+                                            font_size: 40,
+                                            font_scale: 0.25,
+                                            ..Default::default()
+                                        },
+                                        vec2(0.0, 0.5));
+                    if element_text_template(
+                        justify_rect(227.0, 200.0, 70.0, 20.0, vec2(1.0, 0.5)),
+                        match checking_input {
+                            2 => faint_button_template,
+                            _ => button_template
+                        },
+                        mouse_pos,
+                        &format!("{:?}", u32_to_key_code(config.controls.up_arrow)),
+                        TextParams {
+                            font,
+                            font_size: 35,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ).clicked() {
+                        checking_input = 2
+                    }
+
+                    draw_text_justified("Right Arrow: ",
+                                        vec2(45.0 + 10.0, 225.0),
+                                        TextParams {
+                                            font,
+                                            font_size: 40,
+                                            font_scale: 0.25,
+                                            ..Default::default()
+                                        },
+                                        vec2(0.0, 0.5));
+                    if element_text_template(
+                        justify_rect(227.0, 225.0, 70.0, 20.0, vec2(1.0, 0.5)),
+                        match checking_input {
+                            3 => faint_button_template,
+                            _ => button_template
+                        },
+                        mouse_pos,
+                        &format!("{:?}", u32_to_key_code(config.controls.right_arrow)),
+                        TextParams {
+                            font,
+                            font_size: 35,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ).clicked() {
+                        checking_input = 3
+                    }
+
+                    draw_text_justified("Down Arrow: ",
+                                        vec2(45.0 + 10.0, 250.0),
+                                        TextParams {
+                                            font,
+                                            font_size: 40,
+                                            font_scale: 0.25,
+                                            ..Default::default()
+                                        },
+                                        vec2(0.0, 0.5));
+                    if element_text_template(
+                        justify_rect(227.0, 250.0, 70.0, 20.0, vec2(1.0, 0.5)),
+                        match checking_input {
+                            4 => faint_button_template,
+                            _ => button_template
+                        },
+                        mouse_pos,
+                        &format!("{:?}", u32_to_key_code(config.controls.down_arrow)),
+                        TextParams {
+                            font,
+                            font_size: 35,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ).clicked() {
+                        checking_input = 4
+                    }
+
+                    draw_text_justified("Ship Up: ",
+                                        vec2(45.0 + 10.0, 275.0),
+                                        TextParams {
+                                            font,
+                                            font_size: 40,
+                                            font_scale: 0.25,
+                                            ..Default::default()
+                                        },
+                                        vec2(0.0, 0.5));
+                    if element_text_template(
+                        justify_rect(227.0, 275.0, 70.0, 20.0, vec2(1.0, 0.5)),
+                        match checking_input {
+                            5 => faint_button_template,
+                            _ => button_template
+                        },
+                        mouse_pos,
+                        &format!("{:?}", u32_to_key_code(config.controls.ship_up)),
+                        TextParams {
+                            font,
+                            font_size: 35,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ).clicked() {
+                        checking_input = 5
+                    }
+
+                    draw_text_justified("Ship Down: ",
+                                        vec2(45.0 + 10.0, 300.0),
+                                        TextParams {
+                                            font,
+                                            font_size: 40,
+                                            font_scale: 0.25,
+                                            ..Default::default()
+                                        },
+                                        vec2(0.0, 0.5));
+                    if element_text_template(
+                        justify_rect(227.0, 300.0, 70.0, 20.0, vec2(1.0, 0.5)),
+                        match checking_input {
+                            6 => faint_button_template,
+                            _ => button_template
+                        },
+                        mouse_pos,
+                        &format!("{:?}", u32_to_key_code(config.controls.ship_down)),
+                        TextParams {
+                            font,
+                            font_size: 35,
+                            font_scale: 0.25,
+                            ..Default::default()
+                        }
+                    ).clicked() {
+                        checking_input = 6
+                    }
+
+
+                    let mut save = false;
+                    if checking_input != 0 {
+                        if let Some(pressed_key) = get_last_key_pressed() {
+                            let code = key_code_to_u32(pressed_key);
+                            if code != 120 { // An Unknown Key
+                                match checking_input {
+                                    1 => { config.controls.left_arrow = code; }
+                                    2 => { config.controls.up_arrow = code; }
+                                    3 => { config.controls.right_arrow = code; }
+                                    4 => { config.controls.down_arrow = code; }
+                                    5 => { config.controls.ship_up = code; }
+                                    6 => { config.controls.ship_down = code; }
+                                    _ => {}
+                                };
+                                checking_input = 0;
+                                save = true;
+                            }
+                        }
+                    }
+
+                    if save {
+                        let mut data = File::create("assets/config.json").unwrap();
+                        data.write_all((serde_json::to_string_pretty(&config).unwrap()).as_ref()).unwrap();
+                        config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+                    }
                 }
                 MenuState::Loading => {
                     let dots = if load_scene_timer.running {
@@ -695,10 +914,6 @@ impl Scene for MainMenuScene {
                     format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name).as_str(),
                     ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx)
                 )));
-            }
-
-            if is_key_down(KeyCode::LeftShift) {
-                println!("SHIFT!");
             }
 
             if is_key_pressed(KeyCode::F12) {

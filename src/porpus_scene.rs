@@ -120,12 +120,33 @@ impl Scene for PorpusScene {
 
         let mut game_over_timer = Timer::new(3.0, 0);
 
+        let mut fps_display = false;
+
         loop {
             clear_background(BLACK);
             set_camera(&self.window_context.camera);
             clear_background(DARKGRAY);
 
             draw_texture(background_texture, 0.0, 0.0, Color::new(0.5, 0.5, 0.5, 1.0));
+
+            if is_key_pressed(KeyCode::F3) {
+                fps_display = !fps_display;
+            }
+
+            if fps_display {
+                draw_text_justified(
+                    format!("{}", get_fps()).as_str(),
+                    vec2(self.window_context.active_screen_size.x - 5.0, 15.0),
+                    TextParams {
+                        font,
+                        font_size: 40,
+                        font_scale: 0.25,
+                        color: WHITE,
+                        ..Default::default()
+                    },
+                    vec2(1.0, 1.0),
+                );
+            }
 
             let beat =
                 beats_per_second * ((music.position() * 1_000_000.0).round() / 1_000_000.0) as f32;

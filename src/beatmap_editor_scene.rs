@@ -14,6 +14,7 @@ use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene, Return
 use crate::note_gameplay_scene::song::Song;
 use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
+use crate::ui::draw_text_justified;
 use crate::utils::{is_hovering_rect, quick_load_texture};
 
 pub struct UndoEdit {
@@ -73,6 +74,9 @@ impl Scene for BeatmapEditorScene {
 
         let mut paused = false;
 
+        let mut fps_display = false;
+        let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
+
         loop {
             clear_background(BLACK);
             set_camera(&self.window_context.camera);
@@ -81,6 +85,25 @@ impl Scene for BeatmapEditorScene {
             let beat = beats_per_second * ((music.position() * 1_000_000.0).round() / 1_000_000.0) as f32;
 
             let mut ignore_inputs = false;
+
+            if is_key_pressed(KeyCode::F3) {
+                fps_display = !fps_display;
+            }
+
+            if fps_display {
+                draw_text_justified(
+                    format!("{}", get_fps()).as_str(),
+                    vec2(self.window_context.active_screen_size.x - 5.0, 5.0),
+                    TextParams {
+                        font,
+                        font_size: 40,
+                        font_scale: 0.25,
+                        color: WHITE,
+                        ..Default::default()
+                    },
+                    vec2(1.0, 1.0),
+                );
+            }
 
             egui_macroquad::ui(|egui_ctx| {
                 egui::Window::new("Main Editor")

@@ -1,4 +1,12 @@
 {
   "volume": 1.0,
-  "fullscreen": true
+  "fullscreen": true,
+  "controls": {
+    "up_arrow": 59,
+    "down_arrow": 58,
+    "left_arrow": 57,
+    "right_arrow": 56,
+    "ship_up": 40,
+    "ship_down": 36
+  }
 }

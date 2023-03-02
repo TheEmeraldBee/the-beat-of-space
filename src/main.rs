@@ -87,8 +87,6 @@ async fn main() {
             break;
         }
 
-        egui_macroquad::draw();
-
         next_frame().await;
     }
 
