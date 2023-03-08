@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::{draw_window, WindowContext};
 use thousands::Separable;
+use crate::error_scene::ErrorScene;
 use crate::main_menu_scene::MainMenuScene;
 use crate::note_gameplay_scene::{NoteGameplayScene, ReturnTo};
 use crate::ui::*;
@@ -24,18 +25,30 @@ pub struct GameEndScene {
 #[async_trait]
 impl Scene for GameEndScene {
     async fn run(&mut self) -> Option<Box<dyn Scene>> {
-        let background = quick_load_texture("assets/images/backgrounds/Space Background (9).png").await;
+        let background = match quick_load_texture("assets/images/backgrounds/Space Background (9).png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
-        let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
+        let font = match load_ttf_font("assets/fonts/pixel.ttf").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
-        let frame = quick_load_texture("assets/images/ui/frame.png").await;
+        let frame = match quick_load_texture("assets/images/ui/frame.png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
         let nine_slice_frame = Element {
             tex: frame,
             element_type: ElementType::NineSlice(vec2(10.0, 10.0))
         };
 
         let nine_slice_button = Element {
-            tex: quick_load_texture("assets/images/ui/button.png").await,
+            tex: match quick_load_texture("assets/images/ui/button.png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        },
             element_type: ElementType::NineSlice(vec2(10.0, 10.0))
         };
 

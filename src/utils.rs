@@ -1,3 +1,4 @@
+use macroquad::file::FileError;
 use macroquad::input::KeyCode;
 use macroquad::math::Vec2;
 use macroquad::prelude::{FilterMode, Rect};
@@ -6,10 +7,15 @@ use macroquad::texture::load_texture;
 use macroquad::time::get_frame_time;
 use serde::{Deserialize, Serialize};
 
-pub async fn quick_load_texture(path: &str) -> Texture2D {
-    let texture = load_texture(path).await.unwrap();
+pub async fn quick_load_texture(path: &str) -> Result<Texture2D, FileError> {
+    let texture = load_texture(path).await;
+
+    let texture = match texture {
+        Ok(tex) => tex,
+        Err(error) => { return Err(error); }
+    };
     texture.set_filter(FilterMode::Nearest);
-    texture
+    Ok(texture)
 }
 
 

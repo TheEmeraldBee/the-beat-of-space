@@ -10,6 +10,7 @@ use macroquad_aspect::prelude::*;
 use serde::{Deserialize, Serialize};
 use thousands::Separable;
 use crate::beatmap_editor_scene::BeatmapEditorScene;
+use crate::error_scene::ErrorScene;
 
 use crate::note_gameplay_scene::{NoteGameplayScene, ReturnTo};
 use crate::note_gameplay_scene::song::Song;
@@ -70,18 +71,30 @@ impl Scene for MainMenuScene {
 
         let mut state = MenuState::MainMenu;
 
-        let background = quick_load_texture("assets/images/backgrounds/Space Background (15).png").await;
+        let background = match quick_load_texture("assets/images/backgrounds/Space Background (15).png").await  {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
-        let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
+        let font = match load_ttf_font("assets/fonts/pixel.ttf").await  {
+            Ok(font) => font,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
-        let frame = quick_load_texture("assets/images/ui/frame.png").await;
+        let frame = match quick_load_texture("assets/images/ui/frame.png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
         let nine_slice_frame = Element {
             tex: frame,
             element_type: ElementType::NineSlice(vec2(10.0, 10.0))
         };
 
         let nine_slice_button = Element {
-            tex: quick_load_texture("assets/images/ui/button.png").await,
+            tex: match quick_load_texture("assets/images/ui/button.png").await  {
+                Ok(tex) => tex,
+                Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+            },
             element_type: ElementType::NineSlice(vec2(10.0, 10.0))
         };
 
@@ -99,7 +112,10 @@ impl Scene for MainMenuScene {
 
         let plus_template = UITemplate::new(
             Element {
-                tex: quick_load_texture("assets/images/ui/plus.png").await,
+                tex: match quick_load_texture("assets/images/ui/plus.png").await  {
+                    Ok(tex) => tex,
+                    Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+                },
                 element_type: ElementType::Texture
             },
             Color::new(1.0, 1.0, 1.0, 1.0),
@@ -108,7 +124,10 @@ impl Scene for MainMenuScene {
 
         let minus_template = UITemplate::new(
             Element {
-                tex: quick_load_texture("assets/images/ui/minus.png").await,
+                tex: match quick_load_texture("assets/images/ui/minus.png").await {
+                Ok(tex) => tex,
+                Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+            },
                 element_type: ElementType::Texture
             },
             Color::new(1.0, 1.0, 1.0, 1.0),
@@ -116,10 +135,13 @@ impl Scene for MainMenuScene {
         );
 
         let mut sound_manager = AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
-        let sound = StaticSoundData::from_file(
+        let sound = match StaticSoundData::from_file(
             "assets/songs/music_files/ForestLullaby.wav",
             StaticSoundSettings::default(),
-        ).unwrap();
+        ) {
+            Ok(song) => song,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
         let mut music = sound_manager.play(sound).unwrap();
 
@@ -131,11 +153,22 @@ impl Scene for MainMenuScene {
             None => Difficulty::Easy
         };
 
-        let song_database = serde_json::from_str::<SongDatabase>(&load_string("assets/song_data.json").await.unwrap()).unwrap();
+        let song_database = match serde_json::from_str::<SongDatabase>(&match load_string("assets/song_data.json").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("song_data missing, please fix or reinstall", self.window_context.clone())))
+        }) {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("song_data format is wrong", self.window_context.clone())))
+        };
         let mut chosen_song_idx = self.selected_song_idx.unwrap_or(0);
 
-        let mut song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
-
+        let mut song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        }) {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+        };
         let mut config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
 
         music.set_volume(config.volume, Default::default()).unwrap();
@@ -281,7 +314,13 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+                        }) {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+                        };
                     }
 
                     // Medium Button
@@ -309,7 +348,13 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+                        }) {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+                        };
                     }
 
                     // Hard Button
@@ -337,7 +382,13 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+                        }) {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+                        };
                     }
 
                     // Expert Button
@@ -365,7 +416,13 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+                        }) {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+                        };
                     }
 
                     // Extreme Button
@@ -393,7 +450,13 @@ impl Scene for MainMenuScene {
                                 }
                             }
                         }
-                        song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+                        }) {
+                            Ok(tex) => tex,
+                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+                        };
                     }
 
                     let song_data_left = self.window_context.active_screen_size.x - 50.0 - self.window_context.active_screen_size.x * 0.56;
@@ -518,7 +581,13 @@ impl Scene for MainMenuScene {
                                 ).clicked() {
                                     chosen_song_idx = song_idx;
                                     changing_song = false;
-                                    song = serde_json::from_str::<Song>(&load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await.unwrap()).unwrap();
+                                    song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
+                                        Ok(tex) => tex,
+                                        Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+                                    }) {
+                                        Ok(tex) => tex,
+                                        Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+                                    };
                                 }
 
                                 total_songs += 1;

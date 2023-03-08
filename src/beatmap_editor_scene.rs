@@ -7,6 +7,7 @@ use kira::manager::backend::cpal::CpalBackend;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
+use crate::error_scene::ErrorScene;
 
 use crate::main_menu_scene::MainMenuScene;
 use crate::note_gameplay_scene::constants::{ARROW_OFFSET, BEATS_TO_NOTE_HIT, DOWN_ARROW_POS, LEFT_ARROW_POS, NOTE_SIZE, NOTE_START_POS, RIGHT_ARROW_POS, UP_ARROW_POS};
@@ -40,17 +41,26 @@ impl Scene for BeatmapEditorScene {
             song_path = self.song_path.clone();
         }
 
-        let song_json = load_string(&song_path).await.unwrap();
-        let mut song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
+        let song_json = match load_string(&song_path).await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Default Song in editor is missing, try reinstalling", self.window_context.clone())))
+        };
+        let mut song = match serde_json::from_str::<Song>(song_json.as_str()) {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Default song in editor has been changed and is incorrect, try reinstalling", self.window_context.clone())))
+        };
 
         let mut beats_per_second = song.bpm / 60.0;
         let mut pixels_per_beat = (NOTE_START_POS - ARROW_OFFSET) / BEATS_TO_NOTE_HIT;
 
         let mut sound_manager = AudioManager::<CpalBackend>::new(AudioManagerSettings::default()).unwrap();
-        let mut sound = StaticSoundData::from_file(
+        let mut sound = match StaticSoundData::from_file(
             song.song_filepath.clone(),
             StaticSoundSettings::default(),
-        ).unwrap();
+        ) {
+            Ok(sound) => sound,
+            Err(_) => return Some(Box::new(ErrorScene::new("Song in editor is missing sound filepath", self.window_context.clone())))
+        };
 
         let mut music = sound_manager.play(sound).unwrap();
         let mut reload = false;
@@ -63,12 +73,30 @@ impl Scene for BeatmapEditorScene {
         let mut pixels_per_point = 1.0;
 
         // Input Notes
-        let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
-        let input_note_down = quick_load_texture("assets/images/arrow_down.png").await;
-        let input_note_left = quick_load_texture("assets/images/arrow_left.png").await;
-        let input_note_right = quick_load_texture("assets/images/arrow_right.png").await;
-        let hold_note = quick_load_texture("assets/images/hold.png").await;
-        let laser = quick_load_texture("assets/images/laser.png").await;
+        let input_note_up = match quick_load_texture("assets/images/arrow_up.png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let input_note_down = match quick_load_texture("assets/images/arrow_down.png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let input_note_left = match quick_load_texture("assets/images/arrow_left.png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let input_note_right = match quick_load_texture("assets/images/arrow_right.png").await {
+                Ok(tex) => tex,
+                Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+            };
+        let hold_note = match quick_load_texture("assets/images/hold.png").await {
+                Ok(tex) => tex,
+                Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+            };
+        let laser = match quick_load_texture("assets/images/laser.png").await {
+            Ok(tex) => tex,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
         let mut undo_edits: Vec<UndoEdit> = vec![];
 

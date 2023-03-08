@@ -15,6 +15,7 @@ use crate::main_menu_scene::MainMenuScene;
 use crate::note_gameplay_scene::{draw_hold, draw_note, ReturnTo};
 use thousands::Separable;
 use crate::beatmap_editor_scene::BeatmapEditorScene;
+use crate::error_scene::ErrorScene;
 
 use crate::ui::draw_text_justified;
 use crate::utils::*;
@@ -40,7 +41,10 @@ impl PorpusScene {
 impl Scene for PorpusScene {
     async fn run(&mut self) -> Option<Box<dyn Scene>> {
         // Fonts
-        let font = load_ttf_font("assets/fonts/pixel.ttf").await.unwrap();
+        let font = match load_ttf_font("assets/fonts/pixel.ttf").await {
+            Ok(font) => font,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
         // Score Texts
         let mut score_texts: Vec<ScoreText> = vec![];
@@ -63,8 +67,14 @@ impl Scene for PorpusScene {
         let mut green_value = 1.0;
 
         // Load the Song
-        let song_json = load_string(self.song_path.as_str()).await.unwrap();
-        let song = serde_json::from_str::<Song>(song_json.as_str()).unwrap();
+        let song_json = match load_string(self.song_path.as_str()).await {
+            Ok(json) => json,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let mut song = match serde_json::from_str::<Song>(song_json.as_str()) {
+            Ok(json) => json,
+            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
+        };
         let mut active_notes = song.notes.clone();
         let mut song_attacks = song.attacks.clone();
 
@@ -86,16 +96,27 @@ impl Scene for PorpusScene {
         let mut music = sound_manager.play(sound).unwrap();
 
         let config =
-            serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap())
-                .unwrap();
+            match serde_json::from_str::<Config>(&match load_string("assets/config.json").await {
+                Ok(text) => text,
+                Err(_) => return Some(Box::new(ErrorScene::new("Config File Missing", self.window_context.clone())))
+            }) {
+                Ok(config) => config,
+                Err(_) => return Some(Box::new(ErrorScene::new("Config File Error", self.window_context.clone())))
+            };
 
         music.set_volume(config.volume, Default::default()).unwrap();
 
         // Background
         let background_texture =
-            quick_load_texture("assets/images/backgrounds/Space Background (3).png").await;
+            match quick_load_texture("assets/images/backgrounds/Space Background (3).png").await {
+                Ok(texture) => texture,
+                Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+            };
 
-        let ship = quick_load_texture("assets/images/ship.png").await;
+        let ship = match quick_load_texture("assets/images/ship.png").await  {
+            Ok(texture) => texture,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
         let mut ship_position = SHIP_FAR_RIGHT / 2.0;
         let mut ship_height = 200.0;
         let mut wanted_ship_height = RIGHT_ARROW_POS;
@@ -105,18 +126,36 @@ impl Scene for PorpusScene {
         let mut ship_alpha_growing = false;
 
         // Input Notes
-        let input_note_up = quick_load_texture("assets/images/arrow_up.png").await;
-        let input_note_down = quick_load_texture("assets/images/arrow_down.png").await;
-        let input_note_left = quick_load_texture("assets/images/arrow_left.png").await;
-        let input_note_right = quick_load_texture("assets/images/arrow_right.png").await;
+        let input_note_up = match quick_load_texture("assets/images/arrow_up.png").await {
+            Ok(texture) => texture,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let input_note_down = match quick_load_texture("assets/images/arrow_down.png").await {
+            Ok(texture) => texture,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let input_note_left = match quick_load_texture("assets/images/arrow_left.png").await {
+            Ok(texture) => texture,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let input_note_right = match quick_load_texture("assets/images/arrow_right.png").await {
+            Ok(texture) => texture,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
         let mut up_scale = 1.0;
         let mut down_scale = 1.0;
         let mut left_scale = 1.0;
         let mut right_scale = 1.0;
 
-        let hold_note = quick_load_texture("assets/images/hold.png").await;
-        let laser = quick_load_texture("assets/images/laser.png").await;
+        let hold_note = match quick_load_texture("assets/images/hold.png").await {
+            Ok(texture) => texture,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
+        let laser = match quick_load_texture("assets/images/laser.png").await {
+            Ok(texture) => texture,
+            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
+        };
 
         let mut game_over_timer = Timer::new(3.0, 0);
 
