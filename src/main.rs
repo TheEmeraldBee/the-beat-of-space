@@ -46,6 +46,8 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
 
+    let config = serde_json::from_str::<Config>(&read_to_string("assets/config.json").unwrap()).unwrap();
+
     let args: Vec<String> = env::args().collect();
 
     for i in 0..args.len() {
@@ -71,6 +73,7 @@ async fn main() {
         Aspect::new(708.0, 400.0)
     ]);
     window_context.forced = false;
+    window_context.scale = config.resolution_scale;
 
     let mut scene: Box<dyn Scene> = Box::new(MainMenuScene {
         window_context,

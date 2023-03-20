@@ -708,7 +708,7 @@ impl Scene for MainMenuScene {
                     }
 
                     if element_text_template(
-                        justify_rect(40.0, 100.0, 96.0 * 2.0, 18.0 * 1.8, vec2(0.0, 0.5)),
+                        justify_rect(self.window_context.active_screen_size.x - 50.0, 100.0, 96.0 * 2.0, 18.0 * 1.8, vec2(1.0, 0.5)),
                         button_template,
                         mouse_pos,
                         &format!("Fullscreen: {}", match config.fullscreen {
@@ -732,14 +732,54 @@ impl Scene for MainMenuScene {
                     if config.fullscreen != start_fullscreen {
                         draw_text_justified(
                             "Restart required to apply change.",
-                            vec2(45.0, 125.0),
+                            vec2( self.window_context.active_screen_size.x - 50.0, 125.0),
                             TextParams {
                                 font,
                                 font_size: 28,
                                 font_scale: 0.25,
                                 ..Default::default()
-                            }, vec2(0.0, 1.0)
+                            }, vec2(1.0, 1.0)
                         );
+                    }
+
+                    nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 250.0, 50.0, 200.0, 40.0, vec2(0.0, 0.5)), WHITE);
+
+                    draw_text_justified("Scaling: ", vec2(self.window_context.active_screen_size.x - 240.0, 50.0), TextParams {
+                        font,
+                        font_size: 45,
+                        font_scale: 0.25,
+                        ..Default::default()
+                    }, vec2(0.0, 0.5));
+
+                    if element_template(justify_rect(self.window_context.active_screen_size.x - 250.0 + 100.0, 50.0, 18.0, 8.0, vec2(0.0, 0.5)), minus_template, mouse_pos).clicked() {
+                        config.resolution_scale -= 1;
+                        config.resolution_scale = config.resolution_scale.clamp(1, 16);
+
+                        self.window_context.scale = config.resolution_scale;
+                        self.window_context.dirty = true;
+
+                        let mut data = File::create("assets/config.json").unwrap();
+                        data.write_all((serde_json::to_string_pretty(&config).unwrap()).as_ref()).unwrap();
+                        config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
+                    }
+
+                    draw_text_justified(&format!("{}", config.resolution_scale), vec2(self.window_context.active_screen_size.x - 110.0, 50.0), TextParams {
+                        font,
+                        font_size: 45,
+                        font_scale: 0.25,
+                        ..Default::default()
+                    }, vec2(0.5, 0.5));
+
+                    if element_template(justify_rect(self.window_context.active_screen_size.x - 90.0, 50.0, 18.0, 18.0, vec2(0.0, 0.5)), plus_template, mouse_pos).clicked() {
+                        config.resolution_scale += 1;
+                        config.resolution_scale = config.resolution_scale.clamp(1, 16);
+
+                        self.window_context.scale = config.resolution_scale;
+                        self.window_context.dirty = true;
+
+                        let mut data = File::create("assets/config.json").unwrap();
+                        data.write_all((serde_json::to_string_pretty(&config).unwrap()).as_ref()).unwrap();
+                        config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
                     }
 
                     nine_slice_frame.draw(

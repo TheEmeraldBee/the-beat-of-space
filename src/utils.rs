@@ -61,6 +61,7 @@ impl<T> Timer<T> where T: Send {
 pub struct Config {
     pub volume: f64,
     pub fullscreen: bool,
+    pub resolution_scale: u32,
     pub controls: Controls,
 }
 
