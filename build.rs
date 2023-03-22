@@ -1,6 +1,9 @@
 use std::io;
 
 fn main() -> io::Result<()> {
+
+
+
     #[cfg(windows)] {
         use winres::WindowsResource;
         WindowsResource::new()

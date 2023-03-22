@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use std::env;
+use std::env::current_dir;
 use std::fs::{read_to_string};
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;
@@ -26,6 +27,11 @@ mod error_scene;
 mod ui;
 
 fn window_conf() -> Conf {
+    // let mut current_exe = env::current_exe().unwrap();
+    // current_exe.pop();
+    // env::set_current_dir(&current_exe).unwrap();
+    // println!("{:?}", env::current_dir().unwrap());
+
     let config = serde_json::from_str::<Config>(&read_to_string("assets/config.json").unwrap()).unwrap();
 
     Conf {
