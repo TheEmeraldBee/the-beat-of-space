@@ -16,6 +16,7 @@ use crate::note_gameplay_scene::{NoteGameplayScene, ReturnTo};
 use crate::note_gameplay_scene::song::Song;
 use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
+use crate::tutorial_scene::TutorialScene;
 use crate::ui::*;
 use crate::utils::{Config, key_code_to_u32, quick_load_texture, Timer, u32_to_key_code};
 
@@ -1027,6 +1028,12 @@ impl Scene for MainMenuScene {
 
             if is_key_pressed(KeyCode::F12) {
                 return Some(Box::new(BeatmapEditorScene { window_context: self.window_context.clone(), song_path: Default::default() }));
+            }
+
+            if is_key_pressed(KeyCode::T) {
+                return Some(Box::new(TutorialScene {
+                    window_context: self.window_context.clone()
+                }))
             }
 
             draw_window(&mut self.window_context);

@@ -24,6 +24,8 @@ mod midi_converter;
 
 mod error_scene;
 
+mod tutorial_scene;
+
 mod ui;
 
 fn window_conf() -> Conf {
