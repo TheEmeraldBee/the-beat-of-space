@@ -1,6 +1,4 @@
-use std::time::Duration;
 use async_trait::async_trait;
-use egui_macroquad::egui::Key::P;
 use kira::manager::{AudioManager, AudioManagerSettings};
 use kira::manager::backend::cpal::CpalBackend;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
@@ -11,7 +9,6 @@ use crate::error_scene::ErrorScene;
 use crate::main_menu_scene::{Difficulty, MainMenuScene};
 use crate::note_gameplay_scene::constants::*;
 use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene, ReturnTo};
-use crate::note_gameplay_scene::score_texts::ScoreText;
 use crate::scene::Scene;
 use crate::ui::draw_text_justified;
 use crate::utils::{Config, quick_load_texture, u32_to_key_code};
@@ -140,13 +137,9 @@ impl Scene for TutorialScene {
             Ok(texture) => texture,
             Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
         };
-        let mut ship_position = SHIP_FAR_RIGHT / 2.0;
+        let ship_position = SHIP_FAR_RIGHT / 2.0;
         let mut ship_height = 200.0;
         let mut wanted_ship_height = RIGHT_ARROW_POS;
-
-        let mut ship_invincibility = 0.25;
-        let mut ship_alpha = 1.0;
-        let mut ship_alpha_growing = false;
 
         // Input Notes
         let input_note_up = match quick_load_texture("assets/images/arrow_up.png").await {
@@ -453,7 +446,7 @@ impl Scene for TutorialScene {
             }
 
             for (note_beat, note_type, hold_length) in &holds {
-                if hold_length.clone() == 0.0 {
+                if *hold_length == 0.0 {
                     continue;
                 }
 
@@ -466,7 +459,7 @@ impl Scene for TutorialScene {
                     hold_width = hold_draw_pos - 13.0;
                 }
 
-                let thick = note_beat.clone() <= beat;
+                let thick = *note_beat <= beat;
 
                 draw_hold(
                     *note_type,

@@ -1,7 +1,14 @@
 #![windows_subsystem = "windows"]
 
+// for nvidia cards
+#[no_mangle]
+pub static NvOptimusEnablement: i32 = 1;
+
+// for amd cards
+#[no_mangle]
+pub static AmdPowerXpressRequestHighPerformance: i32 = 1;
+
 use std::env;
-use std::env::current_dir;
 use std::fs::{read_to_string};
 use macroquad::miniquad::conf::Icon;
 use macroquad::prelude::*;

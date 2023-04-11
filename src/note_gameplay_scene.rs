@@ -6,7 +6,6 @@ use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
 use std::fs::File;
 use std::io::Write;
-use kira::tween::Tween;
 
 use crate::note_gameplay_scene::constants::*;
 use crate::note_gameplay_scene::score_texts::ScoreType::Score;
