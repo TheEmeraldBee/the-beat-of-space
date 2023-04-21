@@ -6,9 +6,9 @@ use kira::tween::Tween;
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
 use crate::error_scene::ErrorScene;
-use crate::main_menu_scene::{Difficulty, MainMenuScene};
+use crate::main_menu_scene::MainMenuScene;
 use crate::note_gameplay_scene::constants::*;
-use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene, ReturnTo};
+use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene};
 use crate::scene::Scene;
 use crate::ui::draw_text_justified;
 use crate::utils::{Config, quick_load_texture, u32_to_key_code};
@@ -345,14 +345,12 @@ impl Scene for TutorialScene {
                         return Some(Box::new(NoteGameplayScene::new(
                             self.window_context.clone(),
                             "assets/songs/easy/goldn.json",
-                            ReturnTo::MainMenu(Difficulty::Easy, 0))))
+                        )))
                     }
                 }
                 _ => {
                     return Some(Box::new(MainMenuScene {
-                        window_context: self.window_context.clone(),
-                        selected_difficulty: None,
-                        selected_song_idx: None,
+                        window_context: self.window_context.clone()
                     }))
                 }
             }

@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-use macroquad::color::{Color};
+use macroquad::color::{Color, WHITE};
 use macroquad::input::{is_mouse_button_released, MouseButton};
 use macroquad::math::{Rect, Vec2, vec2};
-use macroquad::prelude::{draw_text_ex, draw_texture_ex, DrawTextureParams, TextParams, Texture2D};
+use macroquad::prelude::{draw_text_ex, draw_texture, draw_texture_ex, DrawTextureParams, TextParams, Texture2D};
 use macroquad::text::measure_text;
 
 #[derive(Clone, Copy)]
@@ -251,4 +251,9 @@ impl Element {
             }
         }
     }
+}
+
+pub fn draw_texture_justified(tex: Texture2D, location: Vec2, justification: Vec2) {
+    let justified = justify_rect(location.x, location.y, tex.width(), tex.height(), justification);
+    draw_texture(tex, justified.x, justified.y, WHITE);
 }

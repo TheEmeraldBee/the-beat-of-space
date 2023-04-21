@@ -11,7 +11,7 @@ use crate::error_scene::ErrorScene;
 
 use crate::main_menu_scene::MainMenuScene;
 use crate::note_gameplay_scene::constants::{ARROW_OFFSET, BEATS_TO_NOTE_HIT, DOWN_ARROW_POS, LEFT_ARROW_POS, NOTE_SIZE, NOTE_START_POS, RIGHT_ARROW_POS, UP_ARROW_POS};
-use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene, ReturnTo};
+use crate::note_gameplay_scene::{draw_hold, draw_note, NoteGameplayScene};
 use crate::note_gameplay_scene::song::Song;
 use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
@@ -337,10 +337,10 @@ impl Scene for BeatmapEditorScene {
             }
 
             if test {
-                return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &song_path, ReturnTo::Editor)))
+                return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &song_path)))
             }
             if watch {
-                return Some(Box::new(PorpusScene::new(self.window_context.clone(), &song_path, ReturnTo::Editor)))
+                return Some(Box::new(PorpusScene::new(self.window_context.clone(), &song_path)))
             }
 
             if is_key_pressed(KeyCode::I) && !ignore_inputs {
@@ -610,8 +610,6 @@ impl Scene for BeatmapEditorScene {
             if is_key_pressed(KeyCode::Escape) && is_key_down(KeyCode::LeftShift) && !ignore_inputs {
                 return Some(Box::new(MainMenuScene {
                     window_context: self.window_context.clone(),
-                    selected_difficulty: None,
-                    selected_song_idx: None
                 }));
             }
 

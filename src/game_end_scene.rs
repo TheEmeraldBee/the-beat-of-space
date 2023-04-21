@@ -4,13 +4,12 @@ use macroquad_aspect::prelude::{draw_window, WindowContext};
 use thousands::Separable;
 use crate::error_scene::ErrorScene;
 use crate::main_menu_scene::MainMenuScene;
-use crate::note_gameplay_scene::{NoteGameplayScene, ReturnTo};
+use crate::note_gameplay_scene::{NoteGameplayScene};
 use crate::ui::*;
 use crate::utils::quick_load_texture;
 use crate::scene::Scene;
 
 pub struct GameEndScene {
-    pub return_to: ReturnTo,
     pub window_context: WindowContext,
     pub file_path: String,
     pub beat_level: bool,
@@ -77,15 +76,8 @@ impl Scene for GameEndScene {
                     ..Default::default()
                 }
             ).clicked() {
-                let (difficulty, value) = match self.return_to.clone() {
-                    ReturnTo::MainMenu(difficulty, value) => { (Some(difficulty), Some(value)) }
-                    ReturnTo::Editor => { (None, None) }
-                };
-
                 return Some(Box::new(MainMenuScene {
                     window_context: self.window_context.clone(),
-                    selected_difficulty: difficulty,
-                    selected_song_idx: value
                 }));
             }
 
@@ -99,7 +91,7 @@ impl Scene for GameEndScene {
                     ..Default::default()
                 }
             ).clicked() || is_key_pressed(KeyCode::Space) {
-                return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &self.file_path.clone(), self.return_to.clone())));
+                return Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), &self.file_path.clone())));
             }
 
             let status_text = match self.beat_level {
@@ -172,15 +164,8 @@ impl Scene for GameEndScene {
             }, vec2(0.0, 1.0));
             
             if is_key_pressed(KeyCode::Escape) {
-                let (difficulty, idx) = match self.return_to.clone() {
-                    ReturnTo::MainMenu(difficulty, idx) => {(Some(difficulty), Some(idx))}
-                    ReturnTo::Editor => {(None, None)}
-                };
-
                 return Some(Box::new(MainMenuScene {
-                    window_context: self.window_context.clone(),
-                    selected_difficulty: difficulty,
-                    selected_song_idx: idx
+                    window_context: self.window_context.clone()
                 }));
             }
 
