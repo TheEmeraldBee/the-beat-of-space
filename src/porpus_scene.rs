@@ -12,9 +12,8 @@ use crate::note_gameplay_scene::song::Song;
 
 use crate::game_end_scene::GameEndScene;
 use crate::main_menu_scene::MainMenuScene;
-use crate::note_gameplay_scene::{draw_hold, draw_note, ReturnTo};
+use crate::note_gameplay_scene::{draw_hold, draw_note};
 use thousands::Separable;
-use crate::beatmap_editor_scene::BeatmapEditorScene;
 use crate::error_scene::ErrorScene;
 
 use crate::ui::draw_text_justified;
@@ -24,15 +23,13 @@ use crate::Scene;
 pub struct PorpusScene {
     pub window_context: WindowContext,
     pub song_path: String,
-    pub return_to: ReturnTo
 }
 
 impl PorpusScene {
-    pub fn new(window_context: WindowContext, song_path: &str, return_to: ReturnTo) -> Self {
+    pub fn new(window_context: WindowContext, song_path: &str) -> Self {
         Self {
             window_context,
             song_path: song_path.to_string(),
-            return_to
         }
     }
 }
@@ -113,7 +110,7 @@ impl Scene for PorpusScene {
                 Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
             };
 
-        let ship = match quick_load_texture("assets/images/ship.png").await  {
+        let ship = match quick_load_texture("assets/images/ship.png").await {
             Ok(texture) => texture,
             Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
         };
@@ -194,9 +191,9 @@ impl Scene for PorpusScene {
             red_value += get_frame_time()
                 * 2.0
                 * match red_increasing {
-                    false => -1.0,
-                    true => 1.0,
-                };
+                false => -1.0,
+                true => 1.0,
+            };
             if red_value >= 1.0 {
                 red_increasing = false;
             } else if red_value <= 0.2 {
@@ -206,9 +203,9 @@ impl Scene for PorpusScene {
             green_value += get_frame_time()
                 * 1.6
                 * match green_increasing {
-                    false => -1.0,
-                    true => 1.0,
-                };
+                false => -1.0,
+                true => 1.0,
+            };
             if green_value >= 1.0 {
                 green_increasing = false;
             } else if green_value <= 0.2 {
@@ -218,9 +215,9 @@ impl Scene for PorpusScene {
             blue_value += get_frame_time()
                 * 1.2
                 * match blue_increasing {
-                    false => -1.0,
-                    true => 1.0,
-                };
+                false => -1.0,
+                true => 1.0,
+            };
             if blue_value >= 1.0 {
                 blue_increasing = false;
             } else if blue_value <= 0.2 {
@@ -655,21 +652,10 @@ impl Scene for PorpusScene {
 
             // Close Conditions
             if is_key_pressed(KeyCode::Escape) {
-                return match self.return_to.clone() {
-                    ReturnTo::MainMenu(difficulty, song_idx) => {
-                        Some(Box::new(MainMenuScene {
-                            window_context: self.window_context.clone(),
-                            selected_difficulty: Some(difficulty),
-                            selected_song_idx: Some(song_idx)
-                        }))
-                    }
-                    ReturnTo::Editor => {
-                        Some(Box::new(BeatmapEditorScene {
-                            window_context: self.window_context.clone(),
-                            song_path: self.song_path.clone()
-                        }))
-                    }
-                }
+                return
+                    Some(Box::new(MainMenuScene {
+                        window_context: self.window_context.clone(),
+                    }));
             }
 
             if health <= 0 {
@@ -705,47 +691,33 @@ impl Scene for PorpusScene {
             }
 
             if game_over_timer.is_done() {
-                return match self.return_to.clone() {
-                    ReturnTo::MainMenu(_, _) => {
-                        Some(Box::new(GameEndScene {
-                            return_to: self.return_to.clone(),
-                            window_context: self.window_context.clone(),
-                            file_path: self.song_path.clone(),
-                            beat_level: false,
-                            score,
-                            perfect_notes,
-                            good_notes: 0,
-                            ok_notes: 0,
-                            incorrect_notes: 0,
-                            missed_notes: 0,
-                        }))}
-                    ReturnTo::Editor => { Some(Box::new(BeatmapEditorScene {
+                return
+                    Some(Box::new(GameEndScene {
                         window_context: self.window_context.clone(),
-                        song_path: self.song_path.clone()
-                    })) }
-                }
+                        file_path: self.song_path.clone(),
+                        beat_level: false,
+                        score,
+                        perfect_notes,
+                        good_notes: 0,
+                        ok_notes: 0,
+                        incorrect_notes: 0,
+                        missed_notes: 0,
+                    }));
             }
 
             if music.position() >= song.song_length as f64 {
-                return match self.return_to.clone() {
-                    ReturnTo::MainMenu(_, _) => {
-                        Some(Box::new(GameEndScene {
-                            return_to: self.return_to.clone(),
-                            window_context: self.window_context.clone(),
-                            file_path: self.song_path.clone(),
-                            beat_level: false,
-                            score,
-                            perfect_notes,
-                            good_notes: 0,
-                            ok_notes: 0,
-                            incorrect_notes: 0,
-                            missed_notes: 0,
-                        }))}
-                    ReturnTo::Editor => { Some(Box::new(BeatmapEditorScene {
+                return
+                    Some(Box::new(GameEndScene {
                         window_context: self.window_context.clone(),
-                        song_path: self.song_path.clone()
-                    })) }
-                }
+                        file_path: self.song_path.clone(),
+                        beat_level: false,
+                        score,
+                        perfect_notes,
+                        good_notes: 0,
+                        ok_notes: 0,
+                        incorrect_notes: 0,
+                        missed_notes: 0,
+                    }));
             }
 
             draw_window(&mut self.window_context);

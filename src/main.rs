@@ -34,6 +34,7 @@ mod error_scene;
 mod tutorial_scene;
 
 mod ui;
+mod game_map_scene;
 
 fn window_conf() -> Conf {
     // let mut current_exe = env::current_exe().unwrap();
@@ -91,9 +92,7 @@ async fn main() {
     window_context.scale = config.resolution_scale;
 
     let mut scene: Box<dyn Scene> = Box::new(MainMenuScene {
-        window_context,
-        selected_difficulty: None,
-        selected_song_idx: None
+        window_context
     });
 
     loop {

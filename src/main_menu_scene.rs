@@ -1,4 +1,3 @@
-use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 use async_trait::async_trait;
@@ -8,32 +7,18 @@ use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use macroquad::prelude::*;
 use macroquad_aspect::prelude::*;
 use serde::{Deserialize, Serialize};
-use thousands::Separable;
 use crate::beatmap_editor_scene::BeatmapEditorScene;
 use crate::error_scene::ErrorScene;
+use crate::game_map_scene::GameMapScene;
 
-use crate::note_gameplay_scene::{NoteGameplayScene, ReturnTo};
-use crate::note_gameplay_scene::song::Song;
-use crate::porpus_scene::PorpusScene;
 use crate::scene::Scene;
 use crate::tutorial_scene::TutorialScene;
 use crate::ui::*;
-use crate::utils::{Config, key_code_to_u32, quick_load_texture, Timer, u32_to_key_code};
+use crate::utils::{Config, key_code_to_u32, quick_load_texture, u32_to_key_code};
 
 pub enum MenuState {
     MainMenu,
-    PlayMenu,
-    Settings,
-    Loading
-}
-
-#[derive(Clone)]
-pub enum Difficulty {
-    Easy,
-    Medium,
-    Hard,
-    Expert,
-    Extreme
+    Settings
 }
 
 #[derive(Serialize, Deserialize)]
@@ -48,22 +33,8 @@ pub struct SongData {
     pub difficulties: Vec<String>
 }
 
-impl Display for Difficulty {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Difficulty::Easy => { "easy".to_string() }
-            Difficulty::Medium => { "medium".to_string() }
-            Difficulty::Hard => { "hard".to_string() }
-            Difficulty::Expert => { "expert".to_string() }
-            Difficulty::Extreme => { "extreme".to_string() }
-        })
-    }
-}
-
 pub struct MainMenuScene {
     pub window_context: WindowContext,
-    pub selected_difficulty: Option<Difficulty>,
-    pub selected_song_idx: Option<usize>
 }
 
 #[async_trait]
@@ -146,35 +117,9 @@ impl Scene for MainMenuScene {
 
         let mut music = sound_manager.play(sound).unwrap();
 
-        let mut load_scene_timer = Timer::new(3.5, false);
-        let mut load_watch_timer = Timer::new(3.5, false);
-
-        let mut active_difficulty = match self.selected_difficulty.clone() {
-            Some(difficulty) => difficulty,
-            None => Difficulty::Easy
-        };
-
-        let song_database = match serde_json::from_str::<SongDatabase>(&match load_string("assets/song_data.json").await {
-            Ok(tex) => tex,
-            Err(_) => return Some(Box::new(ErrorScene::new("song_data missing, please fix or reinstall", self.window_context.clone())))
-        }) {
-            Ok(tex) => tex,
-            Err(_) => return Some(Box::new(ErrorScene::new("song_data format is wrong", self.window_context.clone())))
-        };
-        let mut chosen_song_idx = self.selected_song_idx.unwrap_or(0);
-
-        let mut song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
-            Ok(tex) => tex,
-            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
-        }) {
-            Ok(tex) => tex,
-            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
-        };
         let mut config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
 
         music.set_volume(config.volume, Default::default()).unwrap();
-
-        let mut changing_song = false;
 
         let mut play_button_pos = 0.0;
         let mut settings_button_pos = 0.0;
@@ -236,7 +181,7 @@ impl Scene for MainMenuScene {
                             ..Default::default()
                         }
                     ).clicked() || is_key_pressed(KeyCode::Space) {
-                        state = MenuState::PlayMenu;
+                        return Some(Box::new(GameMapScene::new(self.window_context.clone(), None)))
                     }
 
                     let mut settings_rect = justify_rect(50.0, 100.0, 96.0 * 1.25, 26.0, vec2(0.0, 0.5));
@@ -281,373 +226,6 @@ impl Scene for MainMenuScene {
                         }
                     ).clicked() {
                         return None
-                    }
-                }
-                MenuState::PlayMenu => {
-                    // Difficulty Selection Menu
-                    nine_slice_frame.draw(
-                        justify_rect(50.0, 50.0, self.window_context.active_screen_size.x / 4.0, 96.0 * 2.5, vec2(0.0, 0.0)),
-                        WHITE
-                    );
-
-                    // Easy Button
-                    if element_text_template(
-                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
-                        match active_difficulty {
-                            Difficulty::Easy => { button_template }
-                            _ => { faint_button_template }
-                        },
-                        mouse_pos,
-                        "Easy",
-                        TextParams {
-                            font,
-                            font_size: 50,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() {
-                        active_difficulty = Difficulty::Easy;
-                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
-                            for idx in 0..song_database.songs.len() {
-                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
-                                    chosen_song_idx = idx;
-                                    break;
-                                }
-                            }
-                        }
-                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
-                        }) {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
-                        };
-                    }
-
-                    // Medium Button
-                    if element_text_template(
-                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 40.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
-                        match active_difficulty {
-                            Difficulty::Medium => { button_template }
-                            _ => { faint_button_template }
-                        },
-                        mouse_pos,
-                        "Medium",
-                        TextParams {
-                            font,
-                            font_size: 50,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() {
-                        active_difficulty = Difficulty::Medium;
-                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
-                            for idx in 0..song_database.songs.len() {
-                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
-                                    chosen_song_idx = idx;
-                                    break;
-                                }
-                            }
-                        }
-                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
-                        }) {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
-                        };
-                    }
-
-                    // Hard Button
-                    if element_text_template(
-                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 80.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
-                        match active_difficulty {
-                            Difficulty::Hard => { button_template }
-                            _ => { faint_button_template }
-                        },
-                        mouse_pos,
-                        "Hard",
-                        TextParams {
-                            font,
-                            font_size: 50,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() {
-                        active_difficulty = Difficulty::Hard;
-                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
-                            for idx in 0..song_database.songs.len() {
-                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
-                                    chosen_song_idx = idx;
-                                    break;
-                                }
-                            }
-                        }
-                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
-                        }) {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
-                        };
-                    }
-
-                    // Expert Button
-                    if element_text_template(
-                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 120.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
-                        match active_difficulty {
-                            Difficulty::Expert => { button_template }
-                            _ => { faint_button_template }
-                        },
-                        mouse_pos,
-                        "Expert",
-                        TextParams {
-                            font,
-                            font_size: 50,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() {
-                        active_difficulty = Difficulty::Expert;
-                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
-                            for idx in 0..song_database.songs.len() {
-                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
-                                    chosen_song_idx = idx;
-                                    break;
-                                }
-                            }
-                        }
-                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
-                        }) {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
-                        };
-                    }
-
-                    // Extreme Button
-                    if element_text_template(
-                        justify_rect(50.0 + self.window_context.active_screen_size.x / 8.0, 75.0 + 160.0, self.window_context.active_screen_size.x / 6.0, 30.0, vec2(0.5, 0.0)),
-                        match active_difficulty {
-                            Difficulty::Extreme => { button_template }
-                            _ => { faint_button_template }
-                        },
-                        mouse_pos,
-                        "Extreme",
-                        TextParams {
-                            font,
-                            font_size: 50,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() {
-                        active_difficulty = Difficulty::Extreme;
-                        if !song_database.songs[chosen_song_idx].difficulties.contains(&active_difficulty.to_string()) {
-                            for idx in 0..song_database.songs.len() {
-                                if song_database.songs[idx].difficulties.contains(&active_difficulty.to_string()) {
-                                    chosen_song_idx = idx;
-                                    break;
-                                }
-                            }
-                        }
-                        song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
-                        }) {
-                            Ok(tex) => tex,
-                            Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
-                        };
-                    }
-
-                    let song_data_left = self.window_context.active_screen_size.x - 50.0 - self.window_context.active_screen_size.x * 0.56;
-                    let song_data_center = self.window_context.active_screen_size.x - 50.0 - (self.window_context.active_screen_size.x * 0.56) / 2.0;
-
-                    if !changing_song {
-                        if is_key_pressed(KeyCode::Down) {
-                            match active_difficulty {
-                                Difficulty::Easy => {active_difficulty = Difficulty::Medium}
-                                Difficulty::Medium => {active_difficulty = Difficulty::Hard}
-                                Difficulty::Hard => {active_difficulty = Difficulty::Expert}
-                                Difficulty::Expert => {active_difficulty = Difficulty::Extreme}
-                                Difficulty::Extreme => {  }
-                            }
-                        }
-                        if is_key_pressed(KeyCode::Up) {
-                            match active_difficulty {
-                                Difficulty::Easy => {  }
-                                Difficulty::Medium => {active_difficulty = Difficulty::Easy}
-                                Difficulty::Hard => {active_difficulty = Difficulty::Medium}
-                                Difficulty::Expert => {active_difficulty = Difficulty::Hard}
-                                Difficulty::Extreme => {active_difficulty = Difficulty::Expert}
-                            }
-                        }
-
-                        if is_key_pressed(KeyCode::S) {
-                            changing_song = true;
-                        }
-                        if is_key_pressed(KeyCode::Escape) {
-                            state = MenuState::MainMenu;
-                        }
-                        // Song Data Panel
-                        nine_slice_frame.draw(justify_rect(self.window_context.active_screen_size.x - 50.0, 50.0, self.window_context.active_screen_size.x * 0.56, 240.0, vec2(1.0, 0.0)), WHITE);
-
-                        draw_text_justified(
-                            song_database.songs[chosen_song_idx].name.as_str(),
-                            vec2(song_data_center, 80.0),
-                            TextParams {
-                                font,
-                                font_size: 125,
-                                font_scale: 0.25,
-                                ..Default::default()
-                            },vec2(0.5, 1.0));
-
-                        draw_text_justified(
-                            &format!("High Score: {}", song.high_score.separate_with_commas()),
-                            vec2(song_data_left + 25.0, 175.0),
-                            TextParams {
-                                font,
-                                font_size: 40,
-                                font_scale: 0.25,
-                                ..Default::default()
-                            },vec2(0.0, 1.0));
-
-                        draw_text_justified(
-                            &format!("Length: {} Seconds", song.song_length),
-                            vec2(song_data_left + 25.0, 125.0),
-                            TextParams {
-                                font,
-                                font_size: 40,
-                                font_scale: 0.25,
-                                ..Default::default()
-                            },vec2(0.0, 1.0));
-
-                        // Change Song Button
-                        if element_text_template(
-                            justify_rect(song_data_center + 100.0, self.window_context.active_screen_size.y - 60.0, 96.0 * 1.5, 26.0 * 1.5, vec2(0.5, 1.0)),
-                            button_template,
-                            mouse_pos,
-                            "Songs",
-                            TextParams {
-                                font,
-                                font_size: 80,
-                                font_scale: 0.25,
-                                ..Default::default()
-                            }
-                        ).clicked() {
-                            changing_song = true;
-                        }
-
-                    } else {
-                        if is_key_pressed(KeyCode::S) {
-                            changing_song = false;
-                        }
-
-                        if is_key_pressed(KeyCode::Down) {
-                            chosen_song_idx += 1;
-                            if chosen_song_idx >= song_database.songs.len() {
-                                chosen_song_idx = song_database.songs.len() - 1
-                            }
-                        }
-                        if is_key_pressed(KeyCode::Up) && chosen_song_idx > 0 {
-                            chosen_song_idx -= 1;
-                        }
-
-                        if is_key_pressed(KeyCode::Escape) {
-                            changing_song = false;
-                        }
-                        // Song Choice Panel
-                        nine_slice_frame.draw(justify_rect(song_data_center - 100.0, 50.0, self.window_context.active_screen_size.x * 0.28, 240.0, vec2(0.5, 0.0)), WHITE);
-
-                        let mut total_songs = 0;
-                        for song_idx in 0..song_database.songs.len() {
-                            if song_database.songs[song_idx].difficulties.contains(&active_difficulty.to_string()) {
-                                if element_text_template(
-                                    justify_rect(song_data_center - 100.0, 75.0 + (50.0 * total_songs as f32), self.window_context.active_screen_size.x * 0.22, 26.0 * 1.5, vec2(0.5, 0.0)),
-                                    {
-                                        if song_idx == chosen_song_idx {
-                                            button_template
-                                        } else {
-                                            faint_button_template
-                                        }
-                                    },
-                                    mouse_pos,
-                                    &song_database.songs[song_idx].name,
-                                    TextParams {
-                                        font,
-                                        font_size: 50,
-                                        font_scale: 0.25,
-                                        ..Default::default()
-                                    }
-                                ).clicked() {
-                                    chosen_song_idx = song_idx;
-                                    changing_song = false;
-                                    song = match serde_json::from_str::<Song>(&match load_string(&format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name)).await {
-                                        Ok(tex) => tex,
-                                        Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
-                                    }) {
-                                        Ok(tex) => tex,
-                                        Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
-                                    };
-                                }
-
-                                total_songs += 1;
-                            }
-                        }
-                    }
-
-                    // Play Button
-                    if element_text_template(
-                        justify_rect(song_data_center - 100.0, self.window_context.active_screen_size.y - 60.0, 96.0 * 1.5, 26.0 * 1.5, vec2(0.5, 1.0)),
-                        button_template,
-                        mouse_pos,
-                        "Play",
-                        TextParams {
-                            font,
-                            font_size: 80,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() || is_key_pressed(KeyCode::Space) {
-                        state = MenuState::Loading;
-                        load_scene_timer.start();
-                    }
-
-                    // Watch Button
-                    if element_text_template(
-                        justify_rect(song_data_center - 100.0, self.window_context.active_screen_size.y - 20.0, 96.0 * 1.5, 26.0 * 1.25, vec2(0.5, 1.0)),
-                        button_template,
-                        mouse_pos,
-                        "Watch",
-                        TextParams {
-                            font,
-                            font_size: 60,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() || is_key_pressed(KeyCode::W) {
-                        state = MenuState::Loading;
-                        load_watch_timer.start();
-                    }
-
-                    // Back Button
-                    if element_text_template(
-                        justify_rect(50.0, self.window_context.active_screen_size.y - 70.0, 96.0 * 1.3, 26.0 * 1.3, vec2(0.0, 1.0)),
-                        button_template,
-                        mouse_pos,
-                        "Back",
-                        TextParams {
-                            font,
-                            font_size: 60,
-                            font_scale: 0.25,
-                            ..Default::default()
-                        }
-                    ).clicked() {
-                        if changing_song {
-                            changing_song = false;
-                        } else {
-                            state = MenuState::MainMenu
-                        }
                     }
                 }
                 MenuState::Settings => {
@@ -977,53 +555,6 @@ impl Scene for MainMenuScene {
                         config = serde_json::from_str::<Config>(&load_string("assets/config.json").await.unwrap()).unwrap();
                     }
                 }
-                MenuState::Loading => {
-                    let dots = if load_scene_timer.running {
-                        (load_scene_timer.percent_done() * 5.0).round() as i32 % 4
-                    } else {
-                        (load_watch_timer.percent_done() * 5.0).round() as i32 % 4
-                    };
-
-                    let mut text = "Loading".to_string();
-
-                    for _ in 0..dots {
-                        text.push('.');
-                    }
-
-                    draw_text_justified(&text, vec2(25.0, 400.0 - 25.0), TextParams {
-                        font,
-                        font_size: 150,
-                        font_scale: 0.25,
-                        ..Default::default()
-                    }, vec2(0.0, 0.0));
-                }
-            }
-
-            load_scene_timer.update();
-            load_watch_timer.update();
-
-            if load_scene_timer.running {
-                music.set_volume(config.volume * (1.0 - load_scene_timer.percent_done()) as f64, Default::default()).unwrap();
-            }
-
-            if load_watch_timer.running {
-                music.set_volume(config.volume * (1.0 - load_watch_timer.percent_done()) as f64, Default::default()).unwrap();
-            }
-
-            if load_scene_timer.is_done() {
-                return Some(Box::new(NoteGameplayScene::new(
-                    self.window_context.clone(),
-                    format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name).as_str(),
-                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx)
-                )));
-            }
-
-            if load_watch_timer.is_done() {
-                return Some(Box::new(PorpusScene::new(
-                    self.window_context.clone(),
-                    format!("assets/songs/{}/{}", active_difficulty, song_database.songs[chosen_song_idx].json_name).as_str(),
-                    ReturnTo::MainMenu(active_difficulty.clone(), chosen_song_idx)
-                )));
             }
 
             if is_key_pressed(KeyCode::F12) {

@@ -54,9 +54,7 @@ impl Scene for ErrorScene {
 
             if is_key_pressed(KeyCode::Space) {
                 return Some(Box::new(MainMenuScene {
-                    window_context: self.window_context.clone(),
-                    selected_difficulty: None,
-                    selected_song_idx: None,
+                    window_context: self.window_context.clone()
                 }))
             }
 
