@@ -332,7 +332,7 @@ impl Scene for TutorialScene {
                         song_progression += 1;
                         holds.remove(0);
                         scrolling_text.replace_text("Congratulations! You Passed".to_string());
-                        scrolling_text_line_2.replace_text("Here's Easy Goldn! Good Luck!".to_string());
+                        scrolling_text_line_2.replace_text("Into the songs!".to_string());
                     }
                     else if !is_key_down(right_control) {
                         song_progression -= 1;
@@ -344,7 +344,7 @@ impl Scene for TutorialScene {
                     if beat >= 60.0 {
                         return Some(Box::new(NoteGameplayScene::new(
                             self.window_context.clone(),
-                            "assets/songs/easy/goldn.json",
+                            "assets/songs/easy/forestlullaby.json",
                         )))
                     }
                 }

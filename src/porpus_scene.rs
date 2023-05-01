@@ -19,6 +19,7 @@ use crate::error_scene::ErrorScene;
 use crate::ui::draw_text_justified;
 use crate::utils::*;
 use crate::Scene;
+use crate::tutorial_scene::TutorialScene;
 
 pub struct PorpusScene {
     pub window_context: WindowContext,
@@ -608,6 +609,12 @@ impl Scene for PorpusScene {
                 score_texts.retain(|x| x != remove_text);
             }
 
+            if is_key_pressed(KeyCode::Space) {
+                return Some(Box::new(TutorialScene {
+                    window_context: self.window_context.clone(),
+                }));
+            }
+
             draw_text_justified(
                 format!("SCORE: {}", score.separate_with_commas()).as_str(),
                 vec2(5.0, 5.0),
@@ -692,32 +699,12 @@ impl Scene for PorpusScene {
 
             if game_over_timer.is_done() {
                 return
-                    Some(Box::new(GameEndScene {
-                        window_context: self.window_context.clone(),
-                        file_path: self.song_path.clone(),
-                        beat_level: false,
-                        score,
-                        perfect_notes,
-                        good_notes: 0,
-                        ok_notes: 0,
-                        incorrect_notes: 0,
-                        missed_notes: 0,
-                    }));
+                    Some(Box::new(PorpusScene::new(self.window_context.clone(), "assets/songs/extreme/goldn.json")));
             }
 
             if music.position() >= song.song_length as f64 {
                 return
-                    Some(Box::new(GameEndScene {
-                        window_context: self.window_context.clone(),
-                        file_path: self.song_path.clone(),
-                        beat_level: false,
-                        score,
-                        perfect_notes,
-                        good_notes: 0,
-                        ok_notes: 0,
-                        incorrect_notes: 0,
-                        missed_notes: 0,
-                    }));
+                    Some(Box::new(PorpusScene::new(self.window_context.clone(), "assets/songs/extreme/goldn.json")));
             }
 
             draw_window(&mut self.window_context);

@@ -16,6 +16,7 @@ use crate::game_end_scene::GameEndScene;
 use thousands::Separable;
 use crate::beatmap_editor_scene::BeatmapEditorScene;
 use crate::error_scene::ErrorScene;
+use crate::porpus_scene::PorpusScene;
 
 use crate::ui::draw_text_justified;
 use crate::utils::*;
@@ -894,10 +895,7 @@ impl Scene for NoteGameplayScene {
 
             // Close Conditions
             if is_key_pressed(KeyCode::Escape) {
-                return Some(Box::new(BeatmapEditorScene {
-                    window_context: self.window_context.clone(),
-                    song_path: self.song_path.clone(),
-                }));
+                return Some(Box::new(PorpusScene::new(self.window_context.clone(), "assets/songs/extreme/goldn.json")));
             }
 
             if health <= 0 {
@@ -934,17 +932,7 @@ impl Scene for NoteGameplayScene {
 
             if game_over_timer.is_done() {
                 return
-                    Some(Box::new(GameEndScene {
-                        window_context: self.window_context.clone(),
-                        file_path: self.song_path.clone(),
-                        beat_level: false,
-                        score,
-                        perfect_notes,
-                        good_notes,
-                        ok_notes,
-                        incorrect_notes,
-                        missed_notes,
-                    }));
+                    Some(Box::new(PorpusScene::new(self.window_context.clone(), "assets/songs/extreme/goldn.json")));
             }
 
             if music.position() >= song.song_length as f64 {
@@ -956,18 +944,11 @@ impl Scene for NoteGameplayScene {
                 data.write_all((serde_json::to_string_pretty(&song.clone()).unwrap()).as_ref())
                     .unwrap();
 
-                return
-                    Some(Box::new(GameEndScene {
-                        window_context: self.window_context.clone(),
-                        file_path: self.song_path.clone(),
-                        beat_level: true,
-                        score,
-                        perfect_notes,
-                        good_notes,
-                        ok_notes,
-                        incorrect_notes,
-                        missed_notes,
-                    }));
+                return match self.song_path.as_str() {
+                    "assets/songs/easy/goldn.json" => Some(Box::new(PorpusScene::new(self.window_context.clone(), "assets/songs/extreme/goldn.json"))),
+                    "assets/songs/easy/forestlullaby.json" => Some(Box::new(NoteGameplayScene::new(self.window_context.clone(), "assets/songs/easy/goldn.json"))),
+                    _ => Some(Box::new(PorpusScene::new(self.window_context.clone(), "assets/songs/extreme/goldn.json")))
+                };
             }
 
             draw_window(&mut self.window_context);
