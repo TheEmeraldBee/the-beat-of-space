@@ -86,7 +86,7 @@ impl Scene for GameMapScene {
 }
 
 pub async fn verify_world(world: &mut World, path: &str) -> Result<(), String> {
-    for mut level in &mut world.levels {
+    for level in &mut world.levels {
         let level_json = match load_string(&format!("{}/{}.json", path, level)).await {
             Ok(s) => s,
             Err(_) => return Err(format!("{} level doesn't exist", level))

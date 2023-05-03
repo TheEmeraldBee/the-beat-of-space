@@ -12,9 +12,7 @@ use crate::note_gameplay_scene::score_texts::ScoreType::Score;
 use crate::note_gameplay_scene::score_texts::{ScoreQuality, ScoreText, ScoreType};
 use crate::note_gameplay_scene::song::Song;
 
-use crate::game_end_scene::GameEndScene;
 use thousands::Separable;
-use crate::beatmap_editor_scene::BeatmapEditorScene;
 use crate::error_scene::ErrorScene;
 use crate::porpus_scene::PorpusScene;
 
@@ -258,7 +256,6 @@ impl Scene for NoteGameplayScene {
                         y_offset: note_offset,
                     });
                     health -= HEALTH_LOSS_MISS;
-                    missed_notes += 1;
                     combo_multiplier = 1.0;
 
                     continue;
@@ -292,7 +289,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset,
                             });
-                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -301,7 +297,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset,
                             });
-                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
@@ -309,7 +304,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset,
                             });
-                            ok_notes += 1;
                         }
                     }
                 }
@@ -334,7 +328,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset,
                             });
-                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -343,7 +336,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset,
                             });
-                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
@@ -351,7 +343,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset,
                             });
-                            ok_notes += 1;
                         }
                     }
                 }
@@ -376,7 +367,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset,
                             });
-                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -385,7 +375,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset,
                             });
-                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
@@ -393,7 +382,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset,
                             });
-                            ok_notes += 1;
                         }
                     }
                 }
@@ -414,7 +402,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Perfect),
                                 y_offset: note_offset,
                             });
-                            perfect_notes += 1;
                         } else if diff <= GOOD_HIT_RANGE {
                             score += (GOOD_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             combo_multiplier *= 1.025;
@@ -423,7 +410,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Good),
                                 y_offset: note_offset,
                             });
-                            good_notes += 1;
                         } else {
                             score += (OK_HIT_SCORE as f32 * combo_multiplier).round() as i32;
                             score_texts.push(ScoreText {
@@ -431,7 +417,6 @@ impl Scene for NoteGameplayScene {
                                 score_type: Score(ScoreQuality::Ok),
                                 y_offset: note_offset,
                             });
-                            ok_notes += 1;
                         }
                     }
                 }
@@ -451,7 +436,6 @@ impl Scene for NoteGameplayScene {
                     y_offset: UP_ARROW_POS,
                 });
                 combo_multiplier = 1.0;
-                incorrect_notes += 1;
             }
             if is_key_pressed(down_control) && !correct_down {
                 health -= HEALTH_LOSS_INCORRECT;
@@ -461,7 +445,6 @@ impl Scene for NoteGameplayScene {
                     y_offset: DOWN_ARROW_POS,
                 });
                 combo_multiplier = 1.0;
-                incorrect_notes += 1;
             }
             if is_key_pressed(left_control) && !correct_left {
                 health -= HEALTH_LOSS_INCORRECT;
@@ -471,7 +454,6 @@ impl Scene for NoteGameplayScene {
                     y_offset: LEFT_ARROW_POS,
                 });
                 combo_multiplier = 1.0;
-                incorrect_notes += 1;
             }
             if is_key_pressed(right_control) && !correct_right {
                 health -= HEALTH_LOSS_INCORRECT;
@@ -481,7 +463,6 @@ impl Scene for NoteGameplayScene {
                     y_offset: RIGHT_ARROW_POS,
                 });
                 combo_multiplier = 1.0;
-                incorrect_notes += 1;
             }
 
             // Check for ship position changes

@@ -269,7 +269,6 @@ impl Scene for PorpusScene {
                             score_type: Score(ScoreQuality::Perfect),
                             y_offset: note_offset,
                         });
-                        perfect_notes += 1;
                     }
 
                     match *note_type as i32 {
