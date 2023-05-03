@@ -59,12 +59,6 @@ impl Scene for NoteGameplayScene {
         let mut score = 0;
         let mut combo_multiplier = 1.0;
 
-        let mut perfect_notes = 0;
-        let mut good_notes = 0;
-        let mut ok_notes = 0;
-        let mut incorrect_notes = 0;
-        let mut missed_notes = 0;
-
         // Color Changing
         let mut red_increasing = false;
         let mut red_value = 1.0;

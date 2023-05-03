@@ -45,7 +45,7 @@ impl Scene for GameMapScene {
             if dir.file_type().unwrap().is_dir() {
                 println!("Found World!");
 
-                let path = format!("{}", dir.path().as_os_str().to_str().unwrap());
+                let path = dir.path().as_os_str().to_str().unwrap().to_string();
 
                 let world_json = match load_string(&format!("{}/world.json", &path)).await {
                     Ok(str) => str,
@@ -96,8 +96,6 @@ pub async fn verify_world(world: &mut World, path: &str) -> Result<(), String> {
             Ok(_) => (),
             Err(_) => return Err(format!("{} level is formatted incorrectly", level))
         };
-
-        level = &mut format!("{}/{}.json", path, level);
     }
 
 

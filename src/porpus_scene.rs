@@ -10,7 +10,6 @@ use crate::note_gameplay_scene::score_texts::ScoreType::Score;
 use crate::note_gameplay_scene::score_texts::{ScoreQuality, ScoreText, ScoreType};
 use crate::note_gameplay_scene::song::Song;
 
-use crate::game_end_scene::GameEndScene;
 use crate::main_menu_scene::MainMenuScene;
 use crate::note_gameplay_scene::{draw_hold, draw_note};
 use thousands::Separable;
@@ -53,8 +52,6 @@ impl Scene for PorpusScene {
         // Score
         let mut score = 0;
         let mut combo_multiplier = 1.0;
-
-        let mut perfect_notes = 0;
 
         // Color Changing
         let mut red_increasing = false;
