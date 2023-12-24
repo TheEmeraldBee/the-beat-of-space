@@ -8,13 +8,13 @@ description = "The Beat Of Space"
 
 [dependencies]
 async-trait = "0.1.61"
-egui-macroquad = { path = "../egui-macroquad" }
+egui-macroquad = { path = "../../game_libs/egui-macroquad" }
 image = "0.24.5"
 kira = "0.7.1"
 macroquad = { version = "0.3.25", default-features = false }
 macroquad_aspect = { git = "https://github.com/TheEmeraldBee/macroquad_aspect.git" }
 midly = "0.5.3"
-quad-gif = { path = "../quad-gif" }
+quad-gif = { path = "../../game_libs/quad-gif" }
 serde = { version = "1.0.152", features = ["serde_derive"] }
 serde_json = "1.0.91"
 thousands = "0.2.0"
@@ -23,7 +23,7 @@ thousands = "0.2.0"
 winres = "0.1.12"
 
 [patch.crates-io]
-egui-macroquad = { path = "../egui-macroquad" }
+egui-macroquad = { path = "../../game_libs/egui-macroquad" }
 
 [profile.dev]
 opt-level = 1

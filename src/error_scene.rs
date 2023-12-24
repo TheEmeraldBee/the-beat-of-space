@@ -37,7 +37,7 @@ impl Scene for ErrorScene {
                                     ..Default::default()
                                 },
                                 vec2(0.5, 0.5));
-            draw_text_justified("Space: Reload, Escape: Quit Game",
+            draw_text_justified(&"Space: Reload, Escape: Quit Game",
                                 vec2(self.window_context.active_screen_size.x / 2.0, self.window_context.active_screen_size.y / 2.0 + 150.0),
                                 TextParams {
                                     font: Default::default(),

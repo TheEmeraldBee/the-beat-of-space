@@ -68,7 +68,7 @@ impl Scene for PorpusScene {
             Ok(json) => json,
             Err(_) => return Some(Box::new(ErrorScene::new("Assets Missing (Verify Game Files or Reinstall)", self.window_context.clone())))
         };
-        let song = match serde_json::from_str::<Song>(song_json.as_str()) {
+        let mut song = match serde_json::from_str::<Song>(song_json.as_str()) {
             Ok(json) => json,
             Err(_) => return Some(Box::new(ErrorScene::new("Song Format Incorrect", self.window_context.clone())))
         };

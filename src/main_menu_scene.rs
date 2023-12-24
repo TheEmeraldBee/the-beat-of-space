@@ -332,7 +332,7 @@ impl Scene for MainMenuScene {
 
                     if element_template(justify_rect(self.window_context.active_screen_size.x - 250.0 + 100.0, 50.0, 18.0, 8.0, vec2(0.0, 0.5)), minus_template, mouse_pos).clicked() {
                         config.resolution_scale -= 1;
-                        config.resolution_scale = config.resolution_scale.clamp(1, 6);
+                        config.resolution_scale = config.resolution_scale.clamp(1, 16);
 
                         self.window_context.scale = config.resolution_scale;
                         self.window_context.dirty = true;
