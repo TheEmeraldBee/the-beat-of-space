@@ -1,0 +1,32 @@
+[package]
+name = "quad-gif"
+version = "0.2.0"
+edition = "2021"
+license = "MIT"
+description = "Display GIF animations with Macroquad."
+homepage = "https://github.com/ollej/quad-gif"
+repository = "https://github.com/ollej/quad-gif"
+readme = "README.md"
+keywords = ["graphics", "image", "gif", "animation", "macroquad"]
+categories = ["command-line-utilities", "graphics", "multimedia::images", "rendering"]
+
+[dependencies]
+macroquad = { version = "0.3.25", default-features = false }
+gif = "0.11.4"
+gif-dispose = "3.1.1"
+rgb = "0.8.34"
+
+[profile.release]
+opt-level = 'z'
+lto = true
+panic = 'abort'
+codegen-units = 1
+strip = true
+
+[lib]
+name = "quad_gif"
+path = "src/lib.rs"
+
+[[bin]]
+name = "quad_gif"
+path = "src/main.rs"
